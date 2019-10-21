@@ -222,17 +222,22 @@ class MinimaxAgent(CaptureAgent):
 
         # Hyperparams
         depth = 3
+        eval_func = lambda gs: self.getScore(gs)
+        epsilon = 30
+
+
+        rand_num = random.randint(0, 100)
+        if rand_num < epsilon:
+            return np.random.choice(actions)
 
         action = self.alphaBetaHelper(gameState, depth, eval_func, self.index, float("-inf"), float("inf"), self.index)[
             1]
+        return action
 
-        rand_num = random.randint(100)
-        if rand_num < epsilon
-
-    def eval_func(self, gameState):
+    def manual_eval_func(self, gameState):
         score = self.getScore(gs)
 
-        return score - prop_enemies_in_us +
+        return score #- prop_enemies_in_us +
 
     def alphaBetaHelper(self, gameState, depth, evalFunc, agent_index, alpha, beta, root_index):
 
