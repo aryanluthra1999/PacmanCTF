@@ -137,21 +137,38 @@ class MinimaxAgent(CaptureAgent):
 
         return closest_enemy, mean_closest_enemy, min_mean_dist_enemy, closest_friend, mean_closest_friend, min_mean_dist_friend
 
-    def get_friendly_food_features(self, friends, friendly_food):
+    def get_friendly_food_features(self, friends_pos, friendly_food):
         food = friendly_food.asList()
+        friends = friends_pos
+
+        #print(food)
         num_food = len(food)
         dist_to_min_food = min([min([self.dist(foo, f) for foo in food]) for f in friends])
         farthest_min_dis_to_food = max([min([self.dist(foo, f) for foo in food]) for f in friends])
         mean_min_dist_to_food = np.mean([min([self.dist(foo, f) for foo in food]) for f in friends])
-        mean_dist_to_food = np.mean([np.mean([self.dist(foo, f) for foo in food]) for f in friends])
+        mean_dist_to_food = np.mean([[self.dist(foo, f) for foo in food] for f in friends])
 
 
         return num_food, dist_to_min_food, farthest_min_dis_to_food, mean_min_dist_to_food, mean_dist_to_food
 
+    def get_enemy_food_features(self, friends_pos, enemy_food):
+        food = enemy_food.asList()
+        friends = friends_pos
+
+        #print(food)
+        num_enemy_food = len(food)
+        dist_to_min_enemy_food = min([min([self.dist(foo, f) for foo in food]) for f in friends])
+        farthest_min_dis_to_enemy_food = max([min([self.dist(foo, f) for foo in food]) for f in friends])
+        mean_min_dist_to_enemy_food = np.mean([min([self.dist(foo, f) for foo in food]) for f in friends])
+        mean_dist_to_enemy_food = np.mean([[self.dist(foo, f) for foo in food] for f in friends])
+
+
+        return num_enemy_food, dist_to_min_enemy_food, farthest_min_dis_to_enemy_food, mean_min_dist_to_enemy_food, mean_dist_to_enemy_food
+
     def getFeatures(self, gameState):
 
         ## Features between agents
-        enemies = self.getOppenents(gameState)
+        enemies = self.getOpponents(gameState)
         friends = self.getTeam(gameState)
 
         score = self.getScore(gameState)
@@ -201,14 +218,11 @@ class MinimaxAgent(CaptureAgent):
         return score, prop_enemies_in_us, prop_friends_in_them, num_enemies_in_us, num_friends_in_them
 
 
-
-
-
     def is_friend(self, agent_index, gameState):
         return agent_index in self.getTeam(gameState)
 
     def is_enemy(self, agent_index, gameState):
-        return agent_index in self.getOppenents(gameState)
+        return agent_index in self.getOpponents(gameState)
 
     def are_friends(self, index1, index2, gameState):
         one = index1 in self.getTeam(gameState)
@@ -234,8 +248,8 @@ class MinimaxAgent(CaptureAgent):
             print("blue", self.index, actions)
 
         # Hyperparams
-        depth = 3
-        eval_func = lambda gs: self.getScore(gs)
+        depth = 2
+        eval_func = self.manual_eval_func
         epsilon = 30
 
 
@@ -248,9 +262,20 @@ class MinimaxAgent(CaptureAgent):
         return action
 
     def manual_eval_func(self, gameState):
-        score = self.getScore(gs)
+        score = self.getScore(gameState)
+        enemies = self.getOpponents(gameState)
+        friends = self.getTeam(gameState)
+        friend_pos = [gameState.getAgentPosition(i) for i in friends]
+        enemy_food = self.getFoodYouAreDefending(gameState)
+        friendly_food = self.getFood(gameState)
 
-        return score #- prop_enemies_in_us +
+
+        num_food, dist_to_min_food, farthest_min_dis_to_food, mean_min_dist_to_food, mean_dist_to_food = self.get_friendly_food_features(friend_pos, enemy_food)
+        num_enemy_food, dist_to_min_enemy_food, farthest_min_dis_to_enemy_food, mean_min_dist_to_enemy_food, mean_dist_to_enemy_food = self.get_enemy_food_features(friend_pos, friendly_food)
+        result = 0.1*score - dist_to_min_food - farthest_min_dis_to_food - mean_dist_to_food - mean_dist_to_food + 5*num_food
+        result = result - 5*num_enemy_food - dist_to_min_enemy_food - farthest_min_dis_to_enemy_food - mean_min_dist_to_enemy_food - mean_dist_to_enemy_food
+        print(result)
+        return result
 
     def alphaBetaHelper(self, gameState, depth, evalFunc, agent_index, alpha, beta, root_index):
 
