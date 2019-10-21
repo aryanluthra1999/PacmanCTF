@@ -121,6 +121,8 @@ class QLearningAgent(CaptureAgent):
 
 
   def getFeatures(self, gameState):
+
+    ## Features between agents
     enemies = self.getOppenents(gameState)
     friends = self.getTeam(gameState)
 
@@ -138,8 +140,14 @@ class QLearningAgent(CaptureAgent):
     num_enemies_in_blue = sum(enemies_in_blue)
     num_friends_in_red = sum(friends_in_red)
 
+
+    ##Features between foods and agents
     enemy_food = CaptureAgent.getFoodYouAreDefending(gameState)
     friendly_food = CaptureAgent.getFood(gameState)
+
+    ##Features between Super-Capsules an Agents
+    enemy_capsules = CaptureAgent.getCapsules(gameState)
+    friendly_capsule = CaptureAgent.getCapsulesYouAreDefending(gameState)
 
     return score, prop_enemies_in_blue, prop_friends_in_red, num_enemies_in_blue, num_friends_in_red
 
