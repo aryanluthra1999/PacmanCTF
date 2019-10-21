@@ -24,7 +24,7 @@ import numpy as np
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'DummyAgent', second = 'DummyAgent'):
+               first = 'QLearningAgent', second = 'QLearningAgent'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
@@ -92,7 +92,7 @@ class DummyAgent(CaptureAgent):
 
     return random.choice(actions)
 
-class QLearningAgent(CaptureAgent):
+class MinimaxAgent(CaptureAgent):
 
   def registerInitialState(self, gameState):
     """
@@ -119,6 +119,25 @@ class QLearningAgent(CaptureAgent):
     Your initialization code goes here, if you need any.
     '''
 
+  def dist(self, coord1, coord2):
+    return self.distancer.getDistance(coord1, coord2)
+
+  def get_agent_distance_features(self, enemy_pos, friend_pos):
+    enemy_dists = [[self.dist(f, e) for e in enemy_pos] for f in friend_pos]
+    friend_dists = ([([self.dist(f, e) for e in enemy_pos if f != e]) for f in friend_pos])
+
+    closest_enemy = min([min(d) for d in enemy_dists])
+    mean_closest_enemy = np.mean([min(d) for d in enemy_dists])
+    min_mean_dist_enemy = min(np.mean(d) for d in enemy_dists)
+
+    closest_friend = min([min(d) for d in friend_dists])
+    mean_closest_friend = np.mean([min(d) for d in friend_dists])
+    min_mean_dist_friend = min(np.mean(d) for d in enemy_friends)
+
+    return closest_enemy, mean_closest_enemy, min_mean_dist_enemy, closest_friend, mean_closest_friend, min_mean_dist_friend
+
+
+
 
   def getFeatures(self, gameState):
 
@@ -131,25 +150,48 @@ class QLearningAgent(CaptureAgent):
     friend_pos = [gameState.getAgentPosition(i) for i in friends]
     enemy_pos = [gameState.getAgentPosition(i) for i in enemies]
 
-    enemies_in_blue = [gameState.isBlue(i) for i in enemy_pos]
-    friends_in_red = [gameState.isRed(i) for i in friend_pos]
+    closest_enemy, mean_closest_enemy, min_mean_dist_enemy, closest_friend, mean_closest_friend, min_mean_dist_friend = self.get_agent_distance_features(enemy_pos, friend_pos)
 
-    prop_enemies_in_blue = np.mean(enemies_in_blue)
-    prop_friends_in_red = np.mean(friends_in_red)
+    ## Features of agents in enemy territory
 
-    num_enemies_in_blue = sum(enemies_in_blue)
-    num_friends_in_red = sum(friends_in_red)
+    if self.blue:
+      enemies_in_our_territory = [gameState.isBlue(i) for i in enemy_pos]
+    else:
+      enemies_in_our_territory = [gameState.isRed(i) for i in enemy_pos]
+
+    if self.blue:
+      friends_in_enemy_territory = [gameState.isRed(i) for i in friend_pos]
+    else:
+      friends_in_enemy_territory = [gameState.isBlue(i) for i in friend_pos]
+
+    prop_enemies_in_us = np.mean(enemies_in_our_territory)
+    prop_friends_in_them= np.mean(friends_in_enemy_territory)
+
+    num_enemies_in_us = sum(enemies_in_our_territory)
+    num_friends_in_them = sum(friends_in_enemy_territory)
+
+
+    ##Features of agents in Friendly Territory
+
+
 
 
     ##Features between foods and agents
     enemy_food = CaptureAgent.getFoodYouAreDefending(gameState)
     friendly_food = CaptureAgent.getFood(gameState)
 
+
+
+
     ##Features between Super-Capsules an Agents
     enemy_capsules = CaptureAgent.getCapsules(gameState)
     friendly_capsule = CaptureAgent.getCapsulesYouAreDefending(gameState)
 
-    return score, prop_enemies_in_blue, prop_friends_in_red, num_enemies_in_blue, num_friends_in_red
+
+
+
+
+    return score, prop_enemies_in_us, prop_friends_in_them, num_enemies_in_us, num_friends_in_them
 
 
   def chooseAction(self, gameState):
@@ -162,7 +204,7 @@ class QLearningAgent(CaptureAgent):
     You should change this in your own agent.
     '''
 
-    for action in actions:
+    print(actions)
 
 
     return random.choice(actions)
