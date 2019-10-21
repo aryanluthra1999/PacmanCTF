@@ -24,7 +24,7 @@ import numpy as np
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first='QLearningAgent', second='QLearningAgent'):
+               first='MinimaxAgent', second='MinimaxAgent'):
     """
     This function should return a list of two agents that will form the
     team, initialized using firstIndex and secondIndex as their agent
@@ -149,9 +149,10 @@ class MinimaxAgent(CaptureAgent):
         enemy_pos = [gameState.getAgentPosition(i) for i in enemies]
 
         closest_enemy, mean_closest_enemy, min_mean_dist_enemy, closest_friend, mean_closest_friend, min_mean_dist_friend = self.get_agent_distance_features(
-            enemy_pos, friend_pos)
+            enemy_pos, friend_pos
+        )
 
-        ## Features of agents in enemy territory
+        # Features of agents in each others territory
 
         if self.blue:
             enemies_in_our_territory = [gameState.isBlue(i) for i in enemy_pos]
@@ -169,17 +170,32 @@ class MinimaxAgent(CaptureAgent):
         num_enemies_in_us = sum(enemies_in_our_territory)
         num_friends_in_them = sum(friends_in_enemy_territory)
 
-        ##Features of agents in Friendly Territory
+        # Features of agents in their territory
+        if self.blue:
+            friends_in_our_territory = [gameState.isBlue(i) for i in friend_pos]
+        else:
+            friends_in_out_territory = [gameState.isRed(i) for i in friend_pos]
 
-        ##Features between foods and agents
+        if self.blue:
+            enemies_in_their_territory = [gameState.isRed(i) for i in friend_pos]
+        else:
+            enemies_in_their_territory = [gameState.isBlue(i) for i in friend_pos]
+
+        # Features between foods and agents
         enemy_food = CaptureAgent.getFoodYouAreDefending(gameState)
         friendly_food = CaptureAgent.getFood(gameState)
 
-        ##Features between Super-Capsules an Agents
+        # Features between Super-Capsules an Agents
         enemy_capsules = CaptureAgent.getCapsules(gameState)
         friendly_capsule = CaptureAgent.getCapsulesYouAreDefending(gameState)
 
         return score, prop_enemies_in_us, prop_friends_in_them, num_enemies_in_us, num_friends_in_them
+
+    def is_friend(self, agent_index, gameState):
+        return agent_index in self.getTeam(gameState)
+
+    def is_enemy(self, agent_index, gameState):
+        return agent_index in self.getOppenents(gameState)
 
     def chooseAction(self, gameState):
         """
@@ -191,6 +207,74 @@ class MinimaxAgent(CaptureAgent):
         You should change this in your own agent.
         '''
 
-        print(actions)
+        if self.red:
+            print("red", self.index, actions)
+        else:
+            print("blue", self.index, actions)
 
-        return random.choice(actions)
+        # Hyperparams
+        eval_func = lambda gs: self.getScore(gs)
+        depth = 3
+
+        return self.alphaBetaHelper(gameState, depth, eval_func, 0, float("-inf"), float("inf"))[1]
+
+        #return random.choice(actions)
+
+
+
+
+    def alphaBetaHelper(self, gameState, depth, evalFunc, agent_index, alpha, beta):
+
+        if gameState.isWin():
+            return evalFunc(gameState), None
+
+        if gameState.isLose():
+            return evalFunc(gameState), None
+
+        if depth <= 0:
+            return evalFunc(gameState), None
+
+
+        actions = gameState.getLegalActions(agent_index)
+
+        new_depth = depth
+        num_agents = gameState.getNumAgents()
+        new_index = (agent_index + 1) % num_agents
+
+
+        if agent_index == (num_agents - 1):
+            new_depth = depth - 1
+
+
+        succesors_scores = []
+
+        for action in actions:
+            succesor = gameState.generateSuccessor(agent_index, action)
+
+            val = self.alphaBetaHelper(succesor, new_depth, evalFunc, new_index, alpha, beta)[0]
+
+            if self.is_friend(agent_index):
+                if val > beta:
+                    return val, action
+                alpha = max(alpha, val)
+            else:
+                if val < alpha:
+                    return val, action
+                beta = min(beta, val)
+
+            succesors_scores.append((val, action))
+
+        succesors_acts = np.array([score[1] for score in succesors_scores])
+        succesors_scores = np.array([score[0] for score in succesors_scores])
+
+
+
+        if agent_index == 0:
+            optimizing_arg = np.argmax(succesors_scores)
+        else:
+            optimizing_arg = np.argmin(succesors_scores)
+
+        return succesors_scores[optimizing_arg], succesors_acts[optimizing_arg]
+
+
+
