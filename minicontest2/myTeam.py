@@ -132,10 +132,21 @@ class MinimaxAgent(CaptureAgent):
         min_mean_dist_enemy = min(np.mean(d) for d in enemy_dists)
 
         closest_friend = min([min(d) for d in friend_dists])
-        mean_closest_friend = np.mean([min(d) for d in friend_dists])
+        mean_closest_friend = np.mean([min(d) for d in friend_diswts])
         min_mean_dist_friend = min(np.mean(d) for d in enemy_friends)
 
         return closest_enemy, mean_closest_enemy, min_mean_dist_enemy, closest_friend, mean_closest_friend, min_mean_dist_friend
+
+    def get_friendly_food_features(self, friends, friendly_food):
+        food = friendly_food.asList()
+        num_food = len(food)
+        dist_to_min_food = min([min([self.dist(foo, f) for foo in food]) for f in friends])
+        farthest_min_dis_to_food = max([min([self.dist(foo, f) for foo in food]) for f in friends])
+        mean_min_dist_to_food = np.mean([min([self.dist(foo, f) for foo in food]) for f in friends])
+        mean_dist_to_food = np.mean([np.mean([self.dist(foo, f) for foo in food]) for f in friends])
+
+
+        return num_food, dist_to_min_food, farthest_min_dis_to_food, mean_min_dist_to_food, mean_dist_to_food
 
     def getFeatures(self, gameState):
 
@@ -148,9 +159,7 @@ class MinimaxAgent(CaptureAgent):
         friend_pos = [gameState.getAgentPosition(i) for i in friends]
         enemy_pos = [gameState.getAgentPosition(i) for i in enemies]
 
-        closest_enemy, mean_closest_enemy, min_mean_dist_enemy, closest_friend, mean_closest_friend, min_mean_dist_friend = self.get_agent_distance_features(
-            enemy_pos, friend_pos
-        )
+        closest_enemy, mean_closest_enemy, min_mean_dist_enemy, closest_friend, mean_closest_friend, min_mean_dist_friend = self.get_agent_distance_features(enemy_pos, friend_pos)
 
         # Features of agents in each others territory
 
@@ -190,6 +199,10 @@ class MinimaxAgent(CaptureAgent):
         friendly_capsule = CaptureAgent.getCapsulesYouAreDefending(gameState)
 
         return score, prop_enemies_in_us, prop_friends_in_them, num_enemies_in_us, num_friends_in_them
+
+
+
+
 
     def is_friend(self, agent_index, gameState):
         return agent_index in self.getTeam(gameState)
