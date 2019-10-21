@@ -16,6 +16,8 @@ from captureAgents import CaptureAgent
 import random, time, util
 from game import Directions
 import game
+import numpy as np
+
 
 #################
 # Team creation #
@@ -90,3 +92,69 @@ class DummyAgent(CaptureAgent):
 
     return random.choice(actions)
 
+class QLearningAgent(CaptureAgent):
+
+  def registerInitialState(self, gameState):
+    """
+    This method handles the initial setup of the
+    agent to populate useful fields (such as what team
+    we're on).
+
+    A distanceCalculator instance caches the maze distances
+    between each pair of positions, so your agents can use:
+    self.distancer.getDistance(p1, p2)
+
+    IMPORTANT: This method may run for at most 15 seconds.
+    """
+
+    '''
+    Make sure you do not delete the following line. If you would like to
+    use Manhattan distances instead of maze distances in order to save
+    on initialization time, please take a look at
+    CaptureAgent.registerInitialState in captureAgents.py.
+    '''
+    CaptureAgent.registerInitialState(self, gameState)
+
+    '''
+    Your initialization code goes here, if you need any.
+    '''
+
+
+  def getFeatures(self, gameState):
+    enemies = self.getOppenents(gameState)
+    friends = self.getTeam(gameState)
+
+    score = self.getScore(gameState)
+
+    friend_pos = [gameState.getAgentPosition(i) for i in friends]
+    enemy_pos = [gameState.getAgentPosition(i) for i in enemies]
+
+    enemies_in_blue = [gameState.isBlue(i) for i in enemy_pos]
+    friends_in_red = [gameState.isRed(i) for i in friend_pos]
+
+    prop_enemies_in_blue = np.mean(enemies_in_blue)
+    prop_friends_in_red = np.mean(friends_in_red)
+
+    num_enemies_in_blue = sum(enemies_in_blue)
+    num_friends_in_red = sum(friends_in_red)
+
+    enemy_food = CaptureAgent.getFoodYouAreDefending(gameState)
+    friendly_food = CaptureAgent.getFood(gameState)
+
+    return score, prop_enemies_in_blue, prop_friends_in_red, num_enemies_in_blue, num_friends_in_red
+
+
+  def chooseAction(self, gameState):
+    """
+    Picks among actions randomly.
+    """
+    actions = gameState.getLegalActions(self.index)
+
+    '''
+    You should change this in your own agent.
+    '''
+
+    for action in actions:
+
+
+    return random.choice(actions)
