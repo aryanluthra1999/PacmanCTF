@@ -197,6 +197,14 @@ class MinimaxAgent(CaptureAgent):
     def is_enemy(self, agent_index, gameState):
         return agent_index in self.getOppenents(gameState)
 
+    def are_friends(self, index1, index2, gameState):
+        one = index1 in self.getTeam(gameState)
+        two = index2 in self.getTeam(gameState)
+        return one == two
+
+    def are_enemies(self, index1, index2, gameState):
+        return not self.are_friends(index1, index2, gameState)
+
     def chooseAction(self, gameState):
         """
         Picks among actions randomly.
@@ -213,47 +221,47 @@ class MinimaxAgent(CaptureAgent):
             print("blue", self.index, actions)
 
         # Hyperparams
-        eval_func = lambda gs: self.getScore(gs)
         depth = 3
 
-        return self.alphaBetaHelper(gameState, depth, eval_func, 0, float("-inf"), float("inf"))[1]
+        action = self.alphaBetaHelper(gameState, depth, eval_func, self.index, float("-inf"), float("inf"), self.index)[
+            1]
 
-        #return random.choice(actions)
+        rand_num = random.randint(100)
+        if rand_num < epsilon
 
+    def eval_func(self, gameState):
+        score = self.getScore(gs)
 
+        return score - prop_enemies_in_us +
 
+    def alphaBetaHelper(self, gameState, depth, evalFunc, agent_index, alpha, beta, root_index):
 
-    def alphaBetaHelper(self, gameState, depth, evalFunc, agent_index, alpha, beta):
+        # if gameState.isWin():
+        #    return evalFunc(gameState), None
 
-        if gameState.isWin():
-            return evalFunc(gameState), None
-
-        if gameState.isLose():
-            return evalFunc(gameState), None
+        # if gameState.isLose():
+        #    return evalFunc(gameState), None
 
         if depth <= 0:
             return evalFunc(gameState), None
 
-
         actions = gameState.getLegalActions(agent_index)
+        # actions = [a for a in actions if a != 'Stop']
 
         new_depth = depth
         num_agents = gameState.getNumAgents()
         new_index = (agent_index + 1) % num_agents
 
-
-        if agent_index == (num_agents - 1):
+        if new_index == root_index - 1:
             new_depth = depth - 1
-
 
         succesors_scores = []
 
         for action in actions:
             succesor = gameState.generateSuccessor(agent_index, action)
 
-            val = self.alphaBetaHelper(succesor, new_depth, evalFunc, new_index, alpha, beta)[0]
-
-            if self.is_friend(agent_index):
+            val = self.alphaBetaHelper(succesor, new_depth, evalFunc, new_index, alpha, beta, root_index)[0]
+            if self.is_friend(agent_index, gameState):
                 if val > beta:
                     return val, action
                 alpha = max(alpha, val)
@@ -267,14 +275,9 @@ class MinimaxAgent(CaptureAgent):
         succesors_acts = np.array([score[1] for score in succesors_scores])
         succesors_scores = np.array([score[0] for score in succesors_scores])
 
-
-
-        if agent_index == 0:
+        if self.is_friend(agent_index, gameState):
             optimizing_arg = np.argmax(succesors_scores)
         else:
             optimizing_arg = np.argmin(succesors_scores)
 
         return succesors_scores[optimizing_arg], succesors_acts[optimizing_arg]
-
-
-
