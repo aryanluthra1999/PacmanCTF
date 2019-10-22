@@ -610,7 +610,7 @@ class DefensiveAgent(CaptureAgent):
         return gameState.isRed(pos)
     def getWeights(self, gameState, action):
         # Set this manually
-        return {"num_opps_in_territory":-10000000,"num_food_in_territory":20,"is_in_enemy":-1000000000,"min_dist":-5}
+        return {"num_opps_in_territory":-10000000,"num_food_in_territory":20,"is_in_enemy":-1000000000,"min_dist":-5,"min_dist_opp_in_territory":-400}
 
     def getFeatures(self, gameState, action):
         # figure out good features here
@@ -620,10 +620,14 @@ class DefensiveAgent(CaptureAgent):
         friend_pos = [new_gamestate.getAgentPosition(i) for i in friends]
         enemy_pos=[new_gamestate.getAgentPosition(i) for i in self.getOpponents(new_gamestate)]
         opps_in_our_territory=[]
+        opps_in_our_territory_dist=[]
         if not self.red:
             opps_in_our_territory = [ not new_gamestate.isRed(i) for i in enemy_pos]
+            opps_in_our_territory_dist = [self.distancer.getDistance(i,new_gamestate.getAgentPosition(self.index)) for i in enemy_pos if not new_gamestate.isRed(i)]
         else:
             opps_in_out_territory = [new_gamestate.isRed(i) for i in enemy_pos]
+            opps_in_our_territory_dist = [self.distancer.getDistance(i,new_gamestate.getAgentPosition(self.index)) for i in enemy_pos if new_gamestate.isRed(i)]
+
         sum_opps=0
         if len(opps_in_our_territory)!=0:
             sum_opps=sum(opps_in_our_territory)
@@ -634,5 +638,8 @@ class DefensiveAgent(CaptureAgent):
         x=[self.distancer.getDistance(i,new_gamestate.getAgentPosition(self.index)) for i in [new_gamestate.getAgentPosition(k) for k in self.getOpponents(new_gamestate)]]
         min_dist_from_opp=min(x)
         if min_dist_from_opp==0:
-            min_dist_from_opp= -500
-        return {"num_opps_in_territory":sum_opps,"num_food_in_territory":friendly_food,"is_in_enemy":is_in_opp_ground,"min_dist":min_dist_from_opp}
+            min_dist_from_opp= -1000
+        min_dist_opp_in_terr=0
+        if(len(opps_in_our_territory_dist)!=0):
+            min_dist_opp_in_terr=min(opps_in_our_territory_dist)
+        return {"num_opps_in_territory":sum_opps,"num_food_in_territory":friendly_food,"is_in_enemy":is_in_opp_ground,"min_dist":min_dist_from_opp,"min_dist_opp_in_territory":min_dist_opp_in_terr}
