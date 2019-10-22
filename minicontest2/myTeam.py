@@ -567,7 +567,7 @@ class DefensiveAgent(CaptureAgent):
     def getFeatures(self, gameState, action):
         # figure out good features here
         friends_in_our_territory=[]
-        if self.blue:
+        if not self.red:
             friends_in_our_territory = [gameState.isBlue(i) for i in friend_pos]
         else:
             friends_in_out_territory = [gameState.isRed(i) for i in friend_pos]
