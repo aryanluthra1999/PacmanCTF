@@ -27,7 +27,7 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first='OffensiveAgent', second='OffensiveAgent'):
+               first='OffensiveAgent', second='DefensiveAgent'):
     """
     This function should return a list of two agents that will form the
     team, initialized using firstIndex and secondIndex as their agent
@@ -141,10 +141,7 @@ class MinimaxAgent(CaptureAgent):
                 d = self.dist(f, e)
                 if not self.is_in_enemy(gameState, f):
                     d = -10*d
-                enemy_dists.append(d)
-
-
-
+            r
         return np.sum(enemy_dists)
 
     def get_friendly_food_features(self, friends_pos, friendly_food):
@@ -406,12 +403,15 @@ class OffensiveAgent(CaptureAgent):
         for f in friend_pos:
             for e in enemy_pos:
                 d = self.dist(f, e)
+                if d > 7:
+                    continue
                 if not self.is_in_enemy(gameState, f):
                     d = -10*d
                 enemy_dists.append(d)
 
 
-
+        if len(enemy_dists) <= 0:
+            return 0
         return np.sum(enemy_dists)
 
 
@@ -475,11 +475,11 @@ class OffensiveAgent(CaptureAgent):
         # Set this manually
         result = dict()
 
-        result["score"] = 0
+        result["score"] = 0.1
         result["num_enemy_food"] = -1000
         result["enemy_mst_sum"] = -100
         result["min_dist_to_food"] = -10
-        result["enemy_dists"] = -0
+        result["enemy_dists"] = 3
 
         return result
 
