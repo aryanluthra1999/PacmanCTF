@@ -400,14 +400,12 @@ class OffensiveAgent(CaptureAgent):
         for f in friend_pos:
             for e in enemy_pos:
                 d = self.dist(f, e)
-                if d > 7:
+                if d > 5:
                     continue
-                if not self.is_in_enemy(gameState, f):
-                    d = -10*d
+                if self.is_in_enemy(gameState, e):
+                    enemy_dists.append(d)
                 else:
-                    d = 0
-                enemy_dists.append(d)
-
+                    enemy_dists.append(-3*d)
 
         if len(enemy_dists) <= 0:
             return 0
@@ -497,7 +495,7 @@ class OffensiveAgent(CaptureAgent):
         result["num_enemy_food"] = -1000
         result["enemy_mst_sum"] = -100
         result["min_dist_to_food"] = -10
-        result["enemy_dists"] = 0
+        result["enemy_dists"] = -10
         result["remaining_uncaptured"] = -100000
         result["carrying_food"] = 0
         #result["max_dist_to_friend_dot"] = 10
@@ -608,6 +606,7 @@ class DefensiveAgent(CaptureAgent):
         if self.red:
             return not gameState.isRed(pos)
         return gameState.isRed(pos)
+
     def getWeights(self, gameState, action):
         # Set this manually
         return {"num_opps_in_territory":-10000000,"num_food_in_territory":20,"is_in_enemy":-1000000000,"min_dist":-5,"min_dist_opp_in_territory":-400}
