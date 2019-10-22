@@ -140,9 +140,6 @@ class MinimaxAgent(CaptureAgent):
                 d = self.dist(f, e)
                 if not self.is_in_enemy(gameState, f):
                     d = -10*d
-                enemy_dists.append(d)
-
-
         return np.sum(enemy_dists)
 
     def get_friendly_food_features(self, friends_pos, friendly_food):
@@ -150,7 +147,7 @@ class MinimaxAgent(CaptureAgent):
 
         num_food = len(food)
         # mean_dist_to_food = np.mean([[self.dist(foo, f) for foo in food] for f in friends_pos])
-        # food = food + friends_pos
+        food = food + friends_pos
 
 
         mh_graph = np.zeros((len(food), len(food)))
@@ -355,7 +352,6 @@ class MinimaxAgent(CaptureAgent):
 
 
 class OffensiveAgent(CaptureAgent):
-
     def registerInitialState(self, gameState):
         """
         This method handles the initial setup of the
@@ -380,6 +376,8 @@ class OffensiveAgent(CaptureAgent):
         '''
         Your initialization code goes here, if you need any.
         '''
+        self.remaining_uncaptured_foods = 0
+        self.carrying = 0
 
     def is_friend(self, agent_index, gameState):
         return agent_index in self.getTeam(gameState)
@@ -395,6 +393,7 @@ class OffensiveAgent(CaptureAgent):
     def are_enemies(self, index1, index2, gameState):
         return not self.are_friends(index1, index2, gameState)
 
+
     def get_agent_distance_features(self, gameState, enemy_pos, friend_pos):
         #enemy_dists = [[self.dist(f, e) for e in enemy_pos] for f in friend_pos]
         #friend_dists = ([([self.dist(f, e) for e in enemy_pos if f != e]) for f in friend_pos])
@@ -403,17 +402,41 @@ class OffensiveAgent(CaptureAgent):
         for f in friend_pos:
             for e in enemy_pos:
                 d = self.dist(f, e)
+                if d > 7:
+                    continue
                 if not self.is_in_enemy(gameState, f):
                     d = -10*d
+                else:
+                    d = 0
                 enemy_dists.append(d)
 
 
-
+        if len(enemy_dists) <= 0:
+            return 0
         return np.sum(enemy_dists)
 
 
     def get_enemy_food_features(self, gameState, enemy_food):
         food = enemy_food.asList()
+
+        num_food = len(food)
+        agent_pos = gameState.getAgentPosition(self.index)
+
+        mh_graph = np.zeros((len(food), len(food)))
+        for i in range(len(food)):
+            for j in range(i + 1, len(food)):
+                mh_graph[i, j] = self.dist(food[i], food[j])
+
+        X = csr_matrix(mh_graph)
+
+        Tcsr = minimum_spanning_tree(X)
+
+        min_dist_to_food = min([self.dist(agent_pos, f) for f in food])
+
+        return num_food, np.sum(Tcsr), min_dist_to_food
+
+    def get_friendly_food_features(self, gameState, friend_food):
+        food = friend_food.asList()
 
         num_food = len(food)
         agent_pos = gameState.getAgentPosition(self.index)
@@ -472,11 +495,16 @@ class OffensiveAgent(CaptureAgent):
         # Set this manually
         result = dict()
 
-        result["score"] = 0
+        result["score"] = 0.1
         result["num_enemy_food"] = -1000
         result["enemy_mst_sum"] = -100
         result["min_dist_to_food"] = -10
-        result["enemy_dists"] = -0
+        result["enemy_dists"] = 0
+        result["remaining_uncaptured"] = -100000
+        result["carrying_food"] = 0
+        #result["max_dist_to_friend_dot"] = 10
+
+
 
         return result
 
@@ -489,17 +517,40 @@ class OffensiveAgent(CaptureAgent):
         enemies = self.getOpponents(new_gs)
         friends = self.getTeam(new_gs)
         friend_pos = [new_gs.getAgentPosition(i) for i in friends]
+        curr_friend_pos = [gameState.getAgentPosition(i) for i in friends]
         enemy_pos = [new_gs.getAgentPosition(i) for i in enemies]
         friendly_food = self.getFood(new_gs)
+        enemy_food = self.getFoodYouAreDefending(new_gs)
 
         num_enemy_food, enemy_mst_sum, min_dist_to_food = self.get_enemy_food_features(new_gs, friendly_food)
         enemy_dists = self.get_agent_distance_features(new_gs, enemy_pos, friend_pos)
 
+        if sum([self.is_in_enemy(gameState, f) for f in curr_friend_pos]) <= 0:
+            self.remaining_uncaptured_foods = num_enemy_food
+
+        self.carrying = self.remaining_uncaptured_foods - num_enemy_food
+
+        print(self.remaining_uncaptured_foods, self.carrying)
+
+        #print(self.remaining_uncaptured_foods, self.carrying)
+
+        max_dist_to_friend_dot = 0
+
+
+        if self.carrying >= 1:
+            num_friendly_food, enemy_mst_sum, min_dist_to_food = self.get_friendly_food_features(new_gs, enemy_food)
+            max_dist_to_friend_dot = min([self.dist(f, new_gs.getAgentPosition(self.index)) for f in enemy_food.asList()])
+
+
+        #result["max_dist_to_friend_dot"] = 1/(max_dist_to_friend_dot+.01)
+        result["min_dist_to_food"] = min_dist_to_food
         result["score"] = score
         result["num_enemy_food"] = num_enemy_food
         result["min_dist_to_food"] = min_dist_to_food
         result["enemy_mst_sum"] = enemy_mst_sum
         result["enemy_dists"] = enemy_dists
+        result["remaining_uncaptured"] = self.remaining_uncaptured_foods
+        result["carrying_food"] = self.carrying
 
 
         return result
@@ -580,8 +631,15 @@ class DefensiveAgent(CaptureAgent):
             sum_opps=sum(friends_in_our_territory)
         friendly_food = sum([sum(i) for i in self.getFood(new_gamestate)])
         is_in_opp_ground=0
-        if(self.is_in_enemy(new_gamestate,new_gamestate.getAgentPosition(self.index))):
+        if self.is_in_enemy(new_gamestate, new_gamestate.getAgentPosition(self.index)):
             is_in_opp_ground=1
+<<<<<<< HEAD
         x=[self.distancer.getDistance(i,new_gamestate.getAgentPosition(self.index)) for i in [new_gamestate.getAgentPosition(k) for k in self.getOpponents(new_gamestate)]]
         min_dist_from_opp=min(x)
+=======
+        min_dist_from_opp=min([self.distancer.getDistance(i,new_gamestate.getAgentPosition(self.index)) for i in [new_gamestate.getAgentPosition(k) for k in self.getOpponents(new_gamestate)]])
+        #print(min_dist_from_opp)
+        if min_dist_from_opp==0:
+            min_dist_from_opp= -500
+>>>>>>> 940935271e3ab9a1147dfaf5ca51d87b46c7877f
         return {"num_opps_in_territory":sum_opps,"num_food_in_territory":friendly_food,"is_in_enemy":is_in_opp_ground,"min_dist":min_dist_from_opp}
