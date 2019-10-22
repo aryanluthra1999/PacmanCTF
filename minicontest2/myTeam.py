@@ -550,7 +550,6 @@ class OffensiveAgent(CaptureAgent):
         result["remaining_uncaptured"] = self.remaining_uncaptured_foods
         result["carrying_food"] = self.carrying
 
-
         return result
 
 
@@ -611,7 +610,7 @@ class DefensiveAgent(CaptureAgent):
         return gameState.isRed(pos)
     def getWeights(self, gameState, action):
         # Set this manually
-        return {"num_opps_in_territory":-10,"num_food_in_territory":15,"is_in_enemy":-1000000000000,"min_dist":-5}
+        return {"num_opps_in_territory":-10000000,"num_food_in_territory":20,"is_in_enemy":-1000000000,"min_dist":-5}
 
     def getFeatures(self, gameState, action):
         # figure out good features here
@@ -619,14 +618,15 @@ class DefensiveAgent(CaptureAgent):
         friends = self.getTeam(new_gamestate)
         opp_distances=[new_gamestate.getAgentPosition(i) for i in self.getOpponents(new_gamestate)]
         friend_pos = [new_gamestate.getAgentPosition(i) for i in friends]
-        friends_in_our_territory=[]
+        enemy_pos=[new_gamestate.getAgentPosition(i) for i in self.getOpponents(new_gamestate)]
+        opps_in_our_territory=[]
         if not self.red:
-            friends_in_our_territory = [ not new_gamestate.isRed(i) for i in friend_pos]
+            opps_in_our_territory = [ not new_gamestate.isRed(i) for i in enemy_pos]
         else:
-            friends_in_out_territory = [new_gamestate.isRed(i) for i in friend_pos]
+            opps_in_out_territory = [new_gamestate.isRed(i) for i in enemy_pos]
         sum_opps=0
-        if len(friends_in_our_territory)!=0:
-            sum_opps=sum(friends_in_our_territory)
+        if len(opps_in_our_territory)!=0:
+            sum_opps=sum(opps_in_our_territory)
         friendly_food = sum([sum(i) for i in self.getFood(new_gamestate)])
         is_in_opp_ground=0
         if self.is_in_enemy(new_gamestate, new_gamestate.getAgentPosition(self.index)):
