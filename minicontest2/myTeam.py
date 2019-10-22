@@ -17,6 +17,9 @@ import random, time, util
 from game import Directions
 import game
 import numpy as np
+from pprint import pprint
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import minimum_spanning_tree
 
 
 #################
@@ -139,32 +142,46 @@ class MinimaxAgent(CaptureAgent):
 
     def get_friendly_food_features(self, friends_pos, friendly_food):
         food = friendly_food.asList()
-        friends = friends_pos
 
-        #print(food)
+
         num_food = len(food)
-        dist_to_min_food = min([min([self.dist(foo, f) for foo in food]) for f in friends])
-        farthest_min_dis_to_food = max([min([self.dist(foo, f) for foo in food]) for f in friends])
-        mean_min_dist_to_food = np.mean([min([self.dist(foo, f) for foo in food]) for f in friends])
-        mean_dist_to_food = np.mean([[self.dist(foo, f) for foo in food] for f in friends])
+        # mean_dist_to_food = np.mean([[self.dist(foo, f) for foo in food] for f in friends_pos])
+        # food = food + friends_pos
 
 
-        return num_food, dist_to_min_food, farthest_min_dis_to_food, mean_min_dist_to_food, mean_dist_to_food
+        mh_graph = np.zeros((len(food), len(food)))
+        for i in range(len(food)):
+            for j in range(i + 1, len(food)):
+                mh_graph[i, j] = self.dist(food[i], food[j])
+
+        X = csr_matrix(mh_graph)
+
+        Tcsr = minimum_spanning_tree(X)
+
+        return num_food, np.sum(Tcsr)#, mean_dist_to_food
+
 
     def get_enemy_food_features(self, friends_pos, enemy_food):
         food = enemy_food.asList()
-        friends = friends_pos
 
-        #print(food)
-        num_enemy_food = len(food)
-        dist_to_min_enemy_food = min([min([self.dist(foo, f) for foo in food]) for f in friends])
-        farthest_min_dis_to_enemy_food = max([min([self.dist(foo, f) for foo in food]) for f in friends])
-        mean_min_dist_to_enemy_food = np.mean([min([self.dist(foo, f) for foo in food]) for f in friends])
-        mean_dist_to_enemy_food = np.mean([[self.dist(foo, f) for foo in food] for f in friends])
+        num_food = len(food)
+
+        food = food + friends_pos
+
+        mh_graph = np.zeros((len(food), len(food)))
+        for i in range(len(food)):
+            for j in range(i + 1, len(food)):
+                mh_graph[i, j] = self.dist(food[i], food[j])
+
+        X = csr_matrix(mh_graph)
+
+        Tcsr = minimum_spanning_tree(X)
+
+        return num_food, np.sum(Tcsr)
 
 
-        return num_enemy_food, dist_to_min_enemy_food, farthest_min_dis_to_enemy_food, mean_min_dist_to_enemy_food, mean_dist_to_enemy_food
 
+    '''
     def getFeatures(self, gameState):
 
         ## Features between agents
@@ -216,6 +233,7 @@ class MinimaxAgent(CaptureAgent):
         friendly_capsule = CaptureAgent.getCapsulesYouAreDefending(gameState)
 
         return score, prop_enemies_in_us, prop_friends_in_them, num_enemies_in_us, num_friends_in_them
+    '''
 
 
     def is_friend(self, agent_index, gameState):
@@ -248,9 +266,9 @@ class MinimaxAgent(CaptureAgent):
             print("blue", self.index, actions)
 
         # Hyperparams
-        depth = 1
+        depth = 2
         eval_func = self.manual_eval_func
-        epsilon = 30
+        epsilon = 0
 
 
         rand_num = random.randint(0, 100)
@@ -270,12 +288,15 @@ class MinimaxAgent(CaptureAgent):
         friendly_food = self.getFood(gameState)
 
 
-        num_food, dist_to_min_food, farthest_min_dis_to_food, mean_min_dist_to_food, mean_dist_to_food = self.get_friendly_food_features(friend_pos, enemy_food)
-        num_enemy_food, dist_to_min_enemy_food, farthest_min_dis_to_enemy_food, mean_min_dist_to_enemy_food, mean_dist_to_enemy_food = self.get_enemy_food_features(friend_pos, friendly_food)
-        result = 0.1*score - dist_to_min_food - farthest_min_dis_to_food - mean_dist_to_food - mean_dist_to_food + 5*num_food
-        result = result - 5*num_enemy_food - dist_to_min_enemy_food - farthest_min_dis_to_enemy_food - mean_min_dist_to_enemy_food - mean_dist_to_enemy_food
+        num_food, friendly_mst_sum= self.get_friendly_food_features(friend_pos, enemy_food)
+        num_enemy_food, enemy_mst_sum = self.get_enemy_food_features(friend_pos, friendly_food)
+
+        result = score + 10*num_food + friendly_mst_sum
+        result = result - 10*num_enemy_food - enemy_mst_sum
         print(result)
+
         return result
+
 
     def alphaBetaHelper(self, gameState, depth, evalFunc, agent_index, alpha, beta, root_index):
 
