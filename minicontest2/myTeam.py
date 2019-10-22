@@ -140,13 +140,6 @@ class MinimaxAgent(CaptureAgent):
                 d = self.dist(f, e)
                 if not self.is_in_enemy(gameState, f):
                     d = -10*d
-<<<<<<< HEAD
-            r
-=======
-                enemy_dists.append(d)
-
-
->>>>>>> 8258233cc499591206c7f59f6034db9cd82218f3
         return np.sum(enemy_dists)
 
     def get_friendly_food_features(self, friends_pos, friendly_food):
