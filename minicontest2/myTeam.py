@@ -27,7 +27,7 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first='OffensiveAgent', second='MinimaxAgent'):
+               first='OffensiveAgent', second='OffensiveAgent'):
     """
     This function should return a list of two agents that will form the
     team, initialized using firstIndex and secondIndex as their agent
@@ -149,7 +149,6 @@ class MinimaxAgent(CaptureAgent):
 
     def get_friendly_food_features(self, friends_pos, friendly_food):
         food = friendly_food.asList()
-
 
         num_food = len(food)
         # mean_dist_to_food = np.mean([[self.dist(foo, f) for foo in food] for f in friends_pos])
@@ -385,6 +384,63 @@ class OffensiveAgent(CaptureAgent):
         Your initialization code goes here, if you need any.
         '''
 
+    def is_friend(self, agent_index, gameState):
+        return agent_index in self.getTeam(gameState)
+
+    def is_enemy(self, agent_index, gameState):
+        return agent_index in self.getOpponents(gameState)
+
+    def are_friends(self, index1, index2, gameState):
+        one = index1 in self.getTeam(gameState)
+        two = index2 in self.getTeam(gameState)
+        return one == two
+
+    def are_enemies(self, index1, index2, gameState):
+        return not self.are_friends(index1, index2, gameState)
+
+    def get_agent_distance_features(self, gameState, enemy_pos, friend_pos):
+        enemy_dists = [[self.dist(f, e) for e in enemy_pos] for f in friend_pos]
+        #friend_dists = ([([self.dist(f, e) for e in enemy_pos if f != e]) for f in friend_pos])
+
+        enemy_dists = []
+        for f in friend_pos:
+            for e in enemy_pos:
+                d = self.dist(f, e)
+                if not self.is_in_enemy(gameState, f):
+                    d = -10*d
+                enemy_dists.append(d)
+
+
+
+        return np.sum(enemy_dists)
+
+
+    def get_enemy_food_features(self, friends_pos, enemy_food):
+        food = enemy_food.asList()
+
+        num_food = len(food)
+
+        food = food + friends_pos
+
+        mh_graph = np.zeros((len(food), len(food)))
+        for i in range(len(food)):
+            for j in range(i + 1, len(food)):
+                mh_graph[i, j] = self.dist(food[i], food[j])
+
+        X = csr_matrix(mh_graph)
+
+        Tcsr = minimum_spanning_tree(X)
+
+        return num_food, np.sum(Tcsr)
+
+    def dist(self, coord1, coord2):
+        return self.distancer.getDistance(coord1, coord2)
+
+    def is_in_enemy(self, gameState, pos):
+        if self.red:
+            return not gameState.isRed(pos)
+        return gameState.isRed(pos)
+
 
 
     def chooseAction(self, gameState):
@@ -416,13 +472,41 @@ class OffensiveAgent(CaptureAgent):
 
     def getWeights(self, gameState, action):
         # Set this manually
+        result = dict()
 
-        return {}
+        result["score"] = 1
+        result["num_enemy_food"] = -1000
+        result["enemy_mst_sum"] = -100
+        result["enemy_dists"] = -10
+
+        return result
 
     def getFeatures(self, gameState, action):
-        # figure out good features here
+        result = dict()
+        new_gs = gameState.generateSuccessor(self.index, action)
 
-        return {}
+        # figure out good features here
+        score = self.getScore(new_gs)
+        enemies = self.getOpponents(new_gs)
+        friends = self.getTeam(new_gs)
+        friend_pos = [new_gs.getAgentPosition(i) for i in friends]
+        enemy_pos = [new_gs.getAgentPosition(i) for i in enemies]
+        #enemy_food = self.getFoodYouAreDefending(gameState)
+        friendly_food = self.getFood(new_gs)
+
+        num_enemy_food, enemy_mst_sum = self.get_enemy_food_features(friend_pos, friendly_food)
+        enemy_dists = self.get_agent_distance_features(new_gs, enemy_pos, friend_pos)
+
+        result["score"] = score
+        result["num_enemy_food"] = num_enemy_food
+        result["enemy_mst_sum"] = enemy_mst_sum
+        result["enemy_dists"] = enemy_dists
+
+
+        return result
+
+
+
 class DefensiveAgent(CaptureAgent):
 
     def registerInitialState(self, gameState):
