@@ -44,7 +44,7 @@ def createTeam(firstIndex, secondIndex, isRed,
     """
 
     # The following line is an example only; feel free to change it.
-    return [eval(first)(firstIndex), eval(second)(secondIndex)]
+    return [ eval(first)(firstIndex) , eval(second)(secondIndex) ]
 
 
 ##########
@@ -134,14 +134,19 @@ class MinimaxAgent(CaptureAgent):
     def get_agent_distance_features(self, gameState, enemy_pos, friend_pos):
         enemy_dists = [[self.dist(f, e) for e in enemy_pos] for f in friend_pos]
         #friend_dists = ([([self.dist(f, e) for e in enemy_pos if f != e]) for f in friend_pos])
-
         enemy_dists = []
         for f in friend_pos:
             for e in enemy_pos:
                 d = self.dist(f, e)
                 if not self.is_in_enemy(gameState, f):
                     d = -10*d
+<<<<<<< HEAD
             r
+=======
+                enemy_dists.append(d)
+
+
+>>>>>>> 8258233cc499591206c7f59f6034db9cd82218f3
         return np.sum(enemy_dists)
 
     def get_friendly_food_features(self, friends_pos, friendly_food):
@@ -349,7 +354,6 @@ class MinimaxAgent(CaptureAgent):
             optimizing_arg = np.argmax(succesors_scores)
         else:
             optimizing_arg = np.argmin(succesors_scores)
-
         return succesors_scores[optimizing_arg], succesors_acts[optimizing_arg]
 
 
@@ -534,9 +538,6 @@ class DefensiveAgent(CaptureAgent):
         '''
         Your initialization code goes here, if you need any.
         '''
-
-
-
     def chooseAction(self, gameState):
         """
         Picks among actions randomly.
@@ -562,21 +563,34 @@ class DefensiveAgent(CaptureAgent):
             sum += weights[k] * features[k]
 
         return sum
-
+    def is_in_enemy(self, gameState, pos):
+        if self.red:
+            return not gameState.isRed(pos)
+        return gameState.isRed(pos)
     def getWeights(self, gameState, action):
         # Set this manually
-        return {"num_opps_in_territory":-5,"num_food_in_territory":10}
+        return {"num_opps_in_territory":1,"num_food_in_territory":10,"is_in_enemy":-1000000000000,"min_dist":-5}
 
     def getFeatures(self, gameState, action):
         # figure out good features here
+        new_gamestate=gameState.generateSuccessor(self.index,action)
+        friends = self.getTeam(new_gamestate)
+        opp_distances=[new_gamestate.getAgentPosition(i) for i in self.getOpponents(new_gamestate)]
+        friend_pos = [new_gamestate.getAgentPosition(i) for i in friends]
         friends_in_our_territory=[]
         if not self.red:
-            friends_in_our_territory = [gameState.isBlue(i) for i in friend_pos]
+            friends_in_our_territory = [ not new_gamestate.isRed(i) for i in friend_pos]
         else:
-            friends_in_out_territory = [gameState.isRed(i) for i in friend_pos]
+            friends_in_out_territory = [new_gamestate.isRed(i) for i in friend_pos]
         sum_opps=0
         if len(friends_in_our_territory)!=0:
             sum_opps=sum(friends_in_our_territory)
-        friendly_food = CaptureAgent.getFood(gameState)
-
-        return {"num_opps_in_territory":sum_opps,"num_food_in_territory":friendly_food}
+        friendly_food = sum([sum(i) for i in self.getFood(new_gamestate)])
+        is_in_opp_ground=0
+        if self.is_in_enemy(new_gamestate, new_gamestate.getAgentPosition(self.index)):
+            is_in_opp_ground=1
+        min_dist_from_opp=min([self.distancer.getDistance(i,new_gamestate.getAgentPosition(self.index)) for i in [new_gamestate.getAgentPosition(k) for k in self.getOpponents(new_gamestate)]])
+        print(min_dist_from_opp)
+        if min_dist_from_opp==0:
+            min_dist_from_opp= -500
+        return {"num_opps_in_territory":sum_opps,"num_food_in_territory":friendly_food,"is_in_enemy":is_in_opp_ground,"min_dist":min_dist_from_opp}
