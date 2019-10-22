@@ -547,7 +547,6 @@ class DefensiveAgent(CaptureAgent):
         results = []
         for action in actions:
             results.append(self.evaluate(gameState, action))
-
         optomizing_arg = np.argmax(results)
         return actions[optomizing_arg]
 
@@ -563,10 +562,18 @@ class DefensiveAgent(CaptureAgent):
 
     def getWeights(self, gameState, action):
         # Set this manually
-
-        return {}
+        return {"num_opps_in_territory":-5,"num_food_in_territory":10}
 
     def getFeatures(self, gameState, action):
         # figure out good features here
+        friends_in_our_territory=[]
+        if self.blue:
+            friends_in_our_territory = [gameState.isBlue(i) for i in friend_pos]
+        else:
+            friends_in_out_territory = [gameState.isRed(i) for i in friend_pos]
+        sum_opps=0
+        if len(friends_in_our_territory)!=0:
+            sum_opps=sum(friends_in_our_territory)
+        friendly_food = CaptureAgent.getFood(gameState)
 
-        return {}
+        return {"num_opps_in_territory":sum_opps,"num_food_in_territory":friendly_food}
