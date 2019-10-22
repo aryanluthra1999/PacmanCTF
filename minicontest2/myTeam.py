@@ -399,7 +399,7 @@ class OffensiveAgent(CaptureAgent):
         return not self.are_friends(index1, index2, gameState)
 
     def get_agent_distance_features(self, gameState, enemy_pos, friend_pos):
-        enemy_dists = [[self.dist(f, e) for e in enemy_pos] for f in friend_pos]
+        #enemy_dists = [[self.dist(f, e) for e in enemy_pos] for f in friend_pos]
         #friend_dists = ([([self.dist(f, e) for e in enemy_pos if f != e]) for f in friend_pos])
 
         enemy_dists = []
@@ -415,12 +415,11 @@ class OffensiveAgent(CaptureAgent):
         return np.sum(enemy_dists)
 
 
-    def get_enemy_food_features(self, friends_pos, enemy_food):
+    def get_enemy_food_features(self, gameState, enemy_food):
         food = enemy_food.asList()
 
         num_food = len(food)
-
-        food = food + friends_pos
+        agent_pos = gameState.getAgentPosition(self.index)
 
         mh_graph = np.zeros((len(food), len(food)))
         for i in range(len(food)):
@@ -431,7 +430,9 @@ class OffensiveAgent(CaptureAgent):
 
         Tcsr = minimum_spanning_tree(X)
 
-        return num_food, np.sum(Tcsr)
+        min_dist_to_food = min([self.dist(agent_pos, f) for f in food])
+
+        return num_food, np.sum(Tcsr), min_dist_to_food
 
     def dist(self, coord1, coord2):
         return self.distancer.getDistance(coord1, coord2)
@@ -448,7 +449,7 @@ class OffensiveAgent(CaptureAgent):
         Picks among actions randomly.
         """
         actions = gameState.getLegalActions(self.index)
-        actions = [a for a in actions if a != "Stop"]
+        #actions = [a for a in actions if a != "Stop"]
 
         '''
         You should change this in your own agent.
@@ -474,10 +475,11 @@ class OffensiveAgent(CaptureAgent):
         # Set this manually
         result = dict()
 
-        result["score"] = 1
+        result["score"] = 0
         result["num_enemy_food"] = -1000
         result["enemy_mst_sum"] = -100
-        result["enemy_dists"] = -10
+        result["min_dist_to_food"] = -10
+        result["enemy_dists"] = -0
 
         return result
 
@@ -493,11 +495,12 @@ class OffensiveAgent(CaptureAgent):
         enemy_pos = [new_gs.getAgentPosition(i) for i in enemies]
         friendly_food = self.getFood(new_gs)
 
-        num_enemy_food, enemy_mst_sum = self.get_enemy_food_features(friend_pos, friendly_food)
+        num_enemy_food, enemy_mst_sum, min_dist_to_food = self.get_enemy_food_features(new_gs, friendly_food)
         enemy_dists = self.get_agent_distance_features(new_gs, enemy_pos, friend_pos)
 
         result["score"] = score
         result["num_enemy_food"] = num_enemy_food
+        result["min_dist_to_food"] = min_dist_to_food
         result["enemy_mst_sum"] = enemy_mst_sum
         result["enemy_dists"] = enemy_dists
 
