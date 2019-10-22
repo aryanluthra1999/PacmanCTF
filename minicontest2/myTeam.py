@@ -248,7 +248,7 @@ class MinimaxAgent(CaptureAgent):
             print("blue", self.index, actions)
 
         # Hyperparams
-        depth = 2
+        depth = 1
         eval_func = self.manual_eval_func
         epsilon = 30
 
