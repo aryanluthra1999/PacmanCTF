@@ -562,7 +562,7 @@ class DefensiveAgent(CaptureAgent):
         return gameState.isRed(pos)
     def getWeights(self, gameState, action):
         # Set this manually
-        return {"num_opps_in_territory":1,"num_food_in_territory":10,"is_in_enemy":-1000000000000,"min_dist":-5}
+        return {"num_opps_in_territory":-10,"num_food_in_territory":15,"is_in_enemy":-1000000000000,"min_dist":-5}
 
     def getFeatures(self, gameState, action):
         # figure out good features here
@@ -582,8 +582,6 @@ class DefensiveAgent(CaptureAgent):
         is_in_opp_ground=0
         if(self.is_in_enemy(new_gamestate,new_gamestate.getAgentPosition(self.index))):
             is_in_opp_ground=1
-        min_dist_from_opp=min([self.distancer.getDistance(i,new_gamestate.getAgentPosition(self.index)) for i in [new_gamestate.getAgentPosition(k) for k in self.getOpponents(new_gamestate)]])
-        print(min_dist_from_opp)
-        if(min_dist_from_opp==0):
-            min_dist_from_opp==-500
+        x=[self.distancer.getDistance(i,new_gamestate.getAgentPosition(self.index)) for i in [new_gamestate.getAgentPosition(k) for k in self.getOpponents(new_gamestate)]]
+        min_dist_from_opp=min(x)
         return {"num_opps_in_territory":sum_opps,"num_food_in_territory":friendly_food,"is_in_enemy":is_in_opp_ground,"min_dist":min_dist_from_opp}
