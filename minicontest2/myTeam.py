@@ -554,15 +554,19 @@ class DefensiveAgent(CaptureAgent):
             sum += weights[k] * features[k]
 
         return sum
-
+    def is_in_enemy(self, gameState, pos):
+        if self.red:
+            return not gameState.isRed(pos)
+        return gameState.isRed(pos)
     def getWeights(self, gameState, action):
         # Set this manually
-        return {"num_opps_in_territory":-5,"num_food_in_territory":10}
+        return {"num_opps_in_territory":1,"num_food_in_territory":10,"is_in_enemy":-1000000000000}
 
     def getFeatures(self, gameState, action):
         # figure out good features here
         new_gamestate=gameState.generateSuccessor(self.index,action)
         friends = self.getTeam(new_gamestate)
+        opp_distances=[new_gamestate.getAgentPosition(i) for i in self.getOpponents(new_gamestate)]
         friend_pos = [new_gamestate.getAgentPosition(i) for i in friends]
         friends_in_our_territory=[]
         if self.red!=True:
@@ -573,5 +577,7 @@ class DefensiveAgent(CaptureAgent):
         if len(friends_in_our_territory)!=0:
             sum_opps=sum(friends_in_our_territory)
         friendly_food = sum([sum(i) for i in self.getFood(new_gamestate)])
-
-        return {"num_opps_in_territory":sum_opps,"num_food_in_territory":friendly_food}
+        is_in_opp_ground=0
+        if(self.is_in_enemy(new_gamestate,new_gamestate.getPosition(self.index))):
+            is_in_opp_ground=1
+        return {"num_opps_in_territory":sum_opps,"num_food_in_territory":friendly_food,"is_in_enemy":is_in_opp_ground}
