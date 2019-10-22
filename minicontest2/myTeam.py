@@ -14,8 +14,6 @@
 
 from captureAgents import CaptureAgent
 import random, time, util
-from game import Directions
-import game
 import numpy as np
 from pprint import pprint
 from scipy.sparse import csr_matrix
