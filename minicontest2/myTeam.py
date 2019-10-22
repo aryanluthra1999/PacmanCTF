@@ -27,7 +27,7 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first='OffensiveAgent', second='OffensiveAgent'):
+               first='OffensiveAgent', second='DefensiveAgent'):
     """
     This function should return a list of two agents that will form the
     team, initialized using firstIndex and secondIndex as their agent
@@ -44,7 +44,7 @@ def createTeam(firstIndex, secondIndex, isRed,
     """
 
     # The following line is an example only; feel free to change it.
-    return [eval(first)(firstIndex), eval(second)(secondIndex)]
+    return [ eval(first)(firstIndex) , eval(second)(secondIndex) ]
 
 
 ##########
@@ -134,7 +134,6 @@ class MinimaxAgent(CaptureAgent):
     def get_agent_distance_features(self, gameState, enemy_pos, friend_pos):
         enemy_dists = [[self.dist(f, e) for e in enemy_pos] for f in friend_pos]
         #friend_dists = ([([self.dist(f, e) for e in enemy_pos if f != e]) for f in friend_pos])
-
         enemy_dists = []
         for f in friend_pos:
             for e in enemy_pos:
@@ -142,7 +141,6 @@ class MinimaxAgent(CaptureAgent):
                 if not self.is_in_enemy(gameState, f):
                     d = -10*d
                 enemy_dists.append(d)
-
 
 
         return np.sum(enemy_dists)
@@ -352,7 +350,6 @@ class MinimaxAgent(CaptureAgent):
             optimizing_arg = np.argmax(succesors_scores)
         else:
             optimizing_arg = np.argmin(succesors_scores)
-
         return succesors_scores[optimizing_arg], succesors_acts[optimizing_arg]
 
 
@@ -532,9 +529,6 @@ class DefensiveAgent(CaptureAgent):
         '''
         Your initialization code goes here, if you need any.
         '''
-
-
-
     def chooseAction(self, gameState):
         """
         Picks among actions randomly.
@@ -567,14 +561,17 @@ class DefensiveAgent(CaptureAgent):
 
     def getFeatures(self, gameState, action):
         # figure out good features here
+        new_gamestate=gameState.generateSuccessor(self.index,action)
+        friends = self.getTeam(new_gamestate)
+        friend_pos = [new_gamestate.getAgentPosition(i) for i in friends]
         friends_in_our_territory=[]
-        if self.blue:
-            friends_in_our_territory = [gameState.isBlue(i) for i in friend_pos]
+        if self.red!=True:
+            friends_in_our_territory = [not new_gamestate.isRed(i) for i in friend_pos]
         else:
-            friends_in_out_territory = [gameState.isRed(i) for i in friend_pos]
+            friends_in_out_territory = [new_gamestate.isRed(i) for i in friend_pos]
         sum_opps=0
         if len(friends_in_our_territory)!=0:
             sum_opps=sum(friends_in_our_territory)
-        friendly_food = CaptureAgent.getFood(gameState)
+        friendly_food = sum([sum(i) for i in self.getFood(new_gamestate)])
 
         return {"num_opps_in_territory":sum_opps,"num_food_in_territory":friendly_food}
