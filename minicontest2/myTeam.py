@@ -126,19 +126,26 @@ class MinimaxAgent(CaptureAgent):
     def dist(self, coord1, coord2):
         return self.distancer.getDistance(coord1, coord2)
 
-    def get_agent_distance_features(self, enemy_pos, friend_pos):
+    def is_in_enemy(self, gameState, pos):
+        if self.red:
+            return not gameState.isRed(pos)
+        return gameState.isRed(pos)
+
+    def get_agent_distance_features(self, gameState, enemy_pos, friend_pos):
         enemy_dists = [[self.dist(f, e) for e in enemy_pos] for f in friend_pos]
-        friend_dists = ([([self.dist(f, e) for e in enemy_pos if f != e]) for f in friend_pos])
+        #friend_dists = ([([self.dist(f, e) for e in enemy_pos if f != e]) for f in friend_pos])
 
-        closest_enemy = min([min(d) for d in enemy_dists])
-        mean_closest_enemy = np.mean([min(d) for d in enemy_dists])
-        min_mean_dist_enemy = min(np.mean(d) for d in enemy_dists)
+        enemy_dists = []
+        for f in friend_pos:
+            for e in enemy_pos:
+                d = self.dist(f, e)
+                if not self.is_in_enemy(gameState, f):
+                    d = -10*d
+                enemy_dists.append(d)
 
-        closest_friend = min([min(d) for d in friend_dists])
-        mean_closest_friend = np.mean([min(d) for d in friend_diswts])
-        min_mean_dist_friend = min(np.mean(d) for d in enemy_friends)
 
-        return closest_enemy, mean_closest_enemy, min_mean_dist_enemy, closest_friend, mean_closest_friend, min_mean_dist_friend
+
+        return np.sum(enemy_dists)
 
     def get_friendly_food_features(self, friends_pos, friendly_food):
         food = friendly_food.asList()
@@ -255,6 +262,7 @@ class MinimaxAgent(CaptureAgent):
         Picks among actions randomly.
         """
         actions = gameState.getLegalActions(self.index)
+        actions = [a for a in actions if a != "Stop"]
 
         '''
         You should change this in your own agent.
@@ -266,7 +274,7 @@ class MinimaxAgent(CaptureAgent):
             print("blue", self.index, actions)
 
         # Hyperparams
-        depth = 2
+        depth = 1
         eval_func = self.manual_eval_func
         epsilon = 0
 
@@ -284,15 +292,20 @@ class MinimaxAgent(CaptureAgent):
         enemies = self.getOpponents(gameState)
         friends = self.getTeam(gameState)
         friend_pos = [gameState.getAgentPosition(i) for i in friends]
+        enemy_pos = [gameState.getAgentPosition(i) for i in enemies]
         enemy_food = self.getFoodYouAreDefending(gameState)
         friendly_food = self.getFood(gameState)
 
 
         num_food, friendly_mst_sum= self.get_friendly_food_features(friend_pos, enemy_food)
         num_enemy_food, enemy_mst_sum = self.get_enemy_food_features(friend_pos, friendly_food)
+        enemy_dists = self.get_agent_distance_features(gameState, enemy_pos, friend_pos)
 
-        result = score + 10*num_food + friendly_mst_sum
-        result = result - 10*num_enemy_food - enemy_mst_sum
+
+        result = 2*score + 10*num_food + 2*friendly_mst_sum
+        result = result - 12*num_enemy_food - 2*enemy_mst_sum
+        result += enemy_dists
+
         print(result)
 
         return result
@@ -300,11 +313,8 @@ class MinimaxAgent(CaptureAgent):
 
     def alphaBetaHelper(self, gameState, depth, evalFunc, agent_index, alpha, beta, root_index):
 
-        # if gameState.isWin():
-        #    return evalFunc(gameState), None
-
-        # if gameState.isLose():
-        #    return evalFunc(gameState), None
+        if gameState.isOver():
+           return evalFunc(gameState), None
 
         if depth <= 0:
             return evalFunc(gameState), None
