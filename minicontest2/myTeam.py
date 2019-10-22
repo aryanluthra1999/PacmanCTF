@@ -27,7 +27,7 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first='OffensiveAgent', second='MinimaxAgent'):
+               first='OffensiveAgent', second='DefensiveAgent'):
     """
     This function should return a list of two agents that will form the
     team, initialized using firstIndex and secondIndex as their agent
@@ -423,6 +423,9 @@ class OffensiveAgent(CaptureAgent):
         # figure out good features here
 
         return {}
+
+
+
 class DefensiveAgent(CaptureAgent):
 
     def registerInitialState(self, gameState):
