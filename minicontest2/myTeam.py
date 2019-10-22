@@ -491,7 +491,6 @@ class OffensiveAgent(CaptureAgent):
         friends = self.getTeam(new_gs)
         friend_pos = [new_gs.getAgentPosition(i) for i in friends]
         enemy_pos = [new_gs.getAgentPosition(i) for i in enemies]
-        #enemy_food = self.getFoodYouAreDefending(gameState)
         friendly_food = self.getFood(new_gs)
 
         num_enemy_food, enemy_mst_sum = self.get_enemy_food_features(friend_pos, friendly_food)
