@@ -495,7 +495,7 @@ class OffensiveAgent(CaptureAgent):
         result["num_enemy_food"] = -1000
         result["enemy_mst_sum"] = -100
         result["min_dist_to_food"] = -10
-        result["enemy_dists"] = -10
+        result["enemy_dists"] = 10
         result["remaining_uncaptured"] = -100000
         result["carrying_food"] = 0
         #result["max_dist_to_friend_dot"] = 10
@@ -602,6 +602,7 @@ class DefensiveAgent(CaptureAgent):
             sum += weights[k] * features[k]
 
         return sum
+
     def is_in_enemy(self, gameState, pos):
         if self.red:
             return not gameState.isRed(pos)
