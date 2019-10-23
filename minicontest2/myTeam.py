@@ -14,10 +14,6 @@
 
 from captureAgents import CaptureAgent
 import random, time, util
-import numpy as np
-from pprint import pprint
-from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import minimum_spanning_tree
 
 
 #################
@@ -125,7 +121,7 @@ class OffensiveAgent(CaptureAgent):
 
     def update_recent(self, pos):
         self.recent.push(pos)
-        if len(self.recent.list) > 30:
+        if len(self.recent.list) > 125:
             self.recent.pop()
 
     def num_in_recent(self, pos):
@@ -157,14 +153,14 @@ class OffensiveAgent(CaptureAgent):
             if d > 4:
                 continue
             if self.is_in_enemy(gameState, e):
-                r = -1/(d-0.5)
+                r = -1/(d-0.9)
                 enemy_dists.append(r)
             else:
                 enemy_dists.append(1/(d+1))
 
         if len(enemy_dists) <= 0:
             return 0
-        return np.sum(enemy_dists)
+        return sum(enemy_dists)
 
 
     def get_enemy_food_features(self, gameState, enemy_food):
@@ -173,18 +169,19 @@ class OffensiveAgent(CaptureAgent):
         num_food = len(food)
         agent_pos = gameState.getAgentPosition(self.index)
 
-        mh_graph = np.zeros((len(food), len(food)))
+        mh_graph = [[0 for i in range(len(food))] for i in range(len(food))]
         for i in range(len(food)):
             for j in range(i + 1, len(food)):
-                mh_graph[i, j] = self.dist(food[i], food[j])
+                mh_graph[i][j] = self.dist(food[i], food[j])
+                mh_graph[j][i] = mh_graph[i][j]
 
-        X = csr_matrix(mh_graph)
+        X = mh_graph # csr_matrix(mh_graph)
 
-        Tcsr = minimum_spanning_tree(X)
+        Tcsr = prims(X)
 
         min_dist_to_food = min([self.dist(agent_pos, f) for f in food])
 
-        return num_food, np.sum(Tcsr), min_dist_to_food
+        return num_food, deep_sum(Tcsr), min_dist_to_food
 
     def get_friendly_food_features(self, gameState, friend_food):
         food = friend_food.asList()
@@ -192,18 +189,18 @@ class OffensiveAgent(CaptureAgent):
         num_food = len(food)
         agent_pos = gameState.getAgentPosition(self.index)
 
-        mh_graph = np.zeros((len(food), len(food)))
+        mh_graph = [[0 for i in range(len(food))] for i in range(len(food))]
         for i in range(len(food)):
             for j in range(i + 1, len(food)):
-                mh_graph[i, j] = self.dist(food[i], food[j])
+                mh_graph[i][j] = self.dist(food[i], food[j])
 
-        X = csr_matrix(mh_graph)
+        X = mh_graph# csr_matrix(mh_graph)
 
-        Tcsr = minimum_spanning_tree(X)
+        Tcsr = prims(X)
 
         min_dist_to_food = min([self.dist(agent_pos, f) for f in food])
 
-        return num_food, np.sum(Tcsr), min_dist_to_food
+        return num_food, deep_sum(Tcsr), min_dist_to_food
 
     def dist(self, coord1, coord2):
         return self.distancer.getDistance(coord1, coord2)
@@ -229,34 +226,35 @@ class OffensiveAgent(CaptureAgent):
         for action in actions:
             results.append(self.evaluate(gameState, action))
 
-        optomizing_arg = np.argmax(results)
+        #print(results)
+        optomizing_arg = argmax(results)
         return actions[optomizing_arg]
 
     def evaluate(self, gameState, action):
         weights = self.getWeights(gameState, action)
         features = self.getFeatures(gameState, action)
 
-        sum = 0
+        tot = 0
         for k in weights.keys():
-            sum += weights[k] * features[k]
+            tot += weights[k] * features[k]
 
         if action == "Stop":
-            return sum - 10000000
-        return sum
+            return tot - 10000000
+        return tot
 
     def getWeights(self, gameState, action):
         # Set this manually
         result = dict()
 
         result["score"] = 10
-        result["num_enemy_food"] = -75000
-        result["enemy_mst_sum"] = -500
+        result["num_enemy_food"] = -150
+        result["enemy_mst_sum"] = -100
         result["min_dist_to_food"] = -10
         result["enemy_dists"] = 50
         result["remaining_uncaptured"] = -999999999
         result["carrying_food"] = -1
-        result["min_dist_to_friend"] = 100
-        result["times_visited"] = -10000
+        result["min_dist_to_friend"] = 60
+        result["times_visited"] = -3
         #result["max_dist_to_friend_dot"] = 10
 
 
@@ -285,16 +283,16 @@ class OffensiveAgent(CaptureAgent):
 
         self.carrying = self.remaining_uncaptured_foods - num_enemy_food
 
-        print(self.remaining_uncaptured_foods, self.carrying)
-
         #print(self.remaining_uncaptured_foods, self.carrying)
+
+        # print(self.remaining_uncaptured_foods, self.carrying)
 
         max_dist_to_friend_dot = 0
 
         min_dist_to_friend = 0
         if self.is_in_enemy(new_gs, new_gs.getAgentPosition(self.index)) and self.carrying >=1:
             min_dist_to_friend = min([self.dist(new_gs.getAgentPosition(self.index), new_gs.getAgentPosition(f)) for f in friends if f != self.index])
-            min_dist_to_friend = 1/ min_dist_to_friend
+            min_dist_to_friend = 1/min_dist_to_friend
 
 
         if self.carrying >= 1:
@@ -308,12 +306,11 @@ class OffensiveAgent(CaptureAgent):
 
 
         #result["max_dist_to_friend_dot"] = 1/(max_dist_to_friend_dot+.01)
-        result["times_visited"] = 2**times_visited
+        result["times_visited"] = times_visited**1.4
         result["min_dist_to_friend"] = min_dist_to_friend
         result["min_dist_to_food"] = min_dist_to_food
         result["score"] = score
         result["num_enemy_food"] = num_enemy_food
-        result["min_dist_to_food"] = min_dist_to_food
         result["enemy_mst_sum"] = enemy_mst_sum
         result["enemy_dists"] = enemy_dists
         result["remaining_uncaptured"] = self.remaining_uncaptured_foods
@@ -361,7 +358,7 @@ class DefensiveAgent(CaptureAgent):
         results = []
         for action in actions:
             results.append(self.evaluate(gameState, action))
-        optomizing_arg = np.argmax(results)
+        optomizing_arg = argmax(results)
         return actions[optomizing_arg]
 
     def evaluate(self, gameState, action):
@@ -414,3 +411,63 @@ class DefensiveAgent(CaptureAgent):
         if(len(opps_in_our_territory_dist)!=0):
             min_dist_opp_in_terr=min(opps_in_our_territory_dist)
         return {"num_opps_in_territory":sum_opps,"num_food_in_territory":friendly_food,"is_in_enemy":is_in_opp_ground,"min_dist":min_dist_from_opp,"min_dist_opp_in_territory":min_dist_opp_in_terr}
+
+
+def argmax(array):
+    #assert len(array) <= 0
+    return array.index(max(array))
+
+
+# From Coderbyte
+def prims(adjMatrix):
+    V = len(adjMatrix)
+
+    # arbitrarily choose initial vertex from graph
+    vertex = 0
+
+    # initialize empty edges array and empty MST
+    MST = []
+    edges = []
+    visited = []
+    minEdge = [None, None, float('inf')]
+
+    # run prims algorithm until we create an MST
+    # that contains every vertex from the graph
+    while len(MST) != V - 1:
+
+        # mark this vertex as visited
+        visited.append(vertex)
+
+        # add each edge to list of potential edges
+        for r in range(0, V):
+            if adjMatrix[vertex][r] != 0:
+                edges.append([vertex, r, adjMatrix[vertex][r]])
+
+        # find edge with the smallest weight to a vertex
+        # that has not yet been visited
+        for e in range(0, len(edges)):
+            if edges[e][2] < minEdge[2] and edges[e][1] not in visited:
+                minEdge = edges[e]
+
+        # remove min weight edge from list of edges
+        edges.remove(minEdge)
+
+        # push min edge to MST
+        MST.append(minEdge)
+
+        # start at new vertex and reset min edge
+        vertex = minEdge[1]
+        minEdge = [None, None, float('inf')]
+
+    return MST
+
+
+# From StackOverflow
+def deep_sum(L):
+    total = 0  # don't use `sum` as a variable name
+    for i in L:
+        if isinstance(i, list):  # checks if `i` is a list
+            total += deep_sum(i)
+        else:
+            total += i
+    return total
