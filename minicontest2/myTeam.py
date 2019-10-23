@@ -121,6 +121,15 @@ class OffensiveAgent(CaptureAgent):
         '''
         self.remaining_uncaptured_foods = 0
         self.carrying = 0
+        self.recent = util.Queue()
+
+    def update_recent(self, pos):
+        self.recent.push(pos)
+        if len(self.recent.list) > 30:
+            self.recent.pop()
+
+    def num_in_recent(self, pos):
+        return len([p for p in self.recent.list if p == pos])
 
     def is_friend(self, agent_index, gameState):
         return agent_index in self.getTeam(gameState)
@@ -142,15 +151,16 @@ class OffensiveAgent(CaptureAgent):
         #friend_dists = ([([self.dist(f, e) for e in enemy_pos if f != e]) for f in friend_pos])
 
         enemy_dists = []
-        for f in friend_pos:
-            for e in enemy_pos:
-                d = self.dist(f, e)
-                if d > 4:
-                    continue
-                if self.is_in_enemy(gameState, e):
-                    enemy_dists.append(-1/(d-0.5))
-                else:
-                    enemy_dists.append(1/(d+1))
+        f = gameState.getAgentPosition(self.index)
+        for e in enemy_pos:
+            d = self.dist(f, e)
+            if d > 4:
+                continue
+            if self.is_in_enemy(gameState, e):
+                r = -1/(d-0.5)
+                enemy_dists.append(r)
+            else:
+                enemy_dists.append(1/(d+1))
 
         if len(enemy_dists) <= 0:
             return 0
@@ -243,9 +253,10 @@ class OffensiveAgent(CaptureAgent):
         result["enemy_mst_sum"] = -500
         result["min_dist_to_food"] = -10
         result["enemy_dists"] = 50
-        result["remaining_uncaptured"] = -2500000
+        result["remaining_uncaptured"] = -999999999
         result["carrying_food"] = -1
         result["min_dist_to_friend"] = 100
+        result["times_visited"] = -10000
         #result["max_dist_to_friend_dot"] = 10
 
 
@@ -288,10 +299,16 @@ class OffensiveAgent(CaptureAgent):
 
         if self.carrying >= 1:
             num_friendly_food, enemy_mst_sum, min_dist_to_food = self.get_friendly_food_features(new_gs, enemy_food)
+            enemy_mst_sum = enemy_mst_sum**0.5
             max_dist_to_friend_dot = min([self.dist(f, new_gs.getAgentPosition(self.index)) for f in enemy_food.asList()])
 
 
+        self.update_recent(gameState.getAgentPosition(self.index))
+        times_visited = self.num_in_recent(new_gs.getAgentPosition(self.index))
+
+
         #result["max_dist_to_friend_dot"] = 1/(max_dist_to_friend_dot+.01)
+        result["times_visited"] = 2**times_visited
         result["min_dist_to_friend"] = min_dist_to_friend
         result["min_dist_to_food"] = min_dist_to_food
         result["score"] = score
