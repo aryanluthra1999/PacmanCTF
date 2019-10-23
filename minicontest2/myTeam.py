@@ -261,6 +261,7 @@ class OffensiveAgent(CaptureAgent):
 
         return result
 
+    # Merges all the features together into one dict
     def getFeatures(self, gameState, action):
         result = dict()
         new_gs = gameState.generateSuccessor(self.index, action)
