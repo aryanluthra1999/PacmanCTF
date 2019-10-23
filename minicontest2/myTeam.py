@@ -94,261 +94,6 @@ class DummyAgent(CaptureAgent):
         return random.choice(actions)
 
 
-class MinimaxAgent(CaptureAgent):
-
-    def registerInitialState(self, gameState):
-        """
-        This method handles the initial setup of the
-        agent to populate useful fields (such as what team
-        we're on).
-
-        A distanceCalculator instance caches the maze distances
-        between each pair of positions, so your agents can use:
-        self.distancer.getDistance(p1, p2)
-
-        IMPORTANT: This method may run for at most 15 seconds.
-        """
-
-        '''
-        Make sure you do not delete the following line. If you would like to
-        use Manhattan distances instead of maze distances in order to save
-        on initialization time, please take a look at
-        CaptureAgent.registerInitialState in captureAgents.py.
-        '''
-        CaptureAgent.registerInitialState(self, gameState)
-
-        '''
-        Your initialization code goes here, if you need any.
-        '''
-
-    def dist(self, coord1, coord2):
-        return self.distancer.getDistance(coord1, coord2)
-
-    def is_in_enemy(self, gameState, pos):
-        if self.red:
-            return not gameState.isRed(pos)
-        return gameState.isRed(pos)
-
-    def get_agent_distance_features(self, gameState, enemy_pos, friend_pos):
-        enemy_dists = [[self.dist(f, e) for e in enemy_pos] for f in friend_pos]
-        #friend_dists = ([([self.dist(f, e) for e in enemy_pos if f != e]) for f in friend_pos])
-        enemy_dists = []
-        for f in friend_pos:
-            for e in enemy_pos:
-                d = self.dist(f, e)
-                if not self.is_in_enemy(gameState, f):
-                    d = -10*d
-        return np.sum(enemy_dists)
-
-    def get_friendly_food_features(self, friends_pos, friendly_food):
-        food = friendly_food.asList()
-
-        num_food = len(food)
-        # mean_dist_to_food = np.mean([[self.dist(foo, f) for foo in food] for f in friends_pos])
-        food = food + friends_pos
-
-
-        mh_graph = np.zeros((len(food), len(food)))
-        for i in range(len(food)):
-            for j in range(i + 1, len(food)):
-                mh_graph[i, j] = self.dist(food[i], food[j])
-
-        X = csr_matrix(mh_graph)
-
-        Tcsr = minimum_spanning_tree(X)
-
-        return num_food, np.sum(Tcsr)#, mean_dist_to_food
-
-
-    def get_enemy_food_features(self, friends_pos, enemy_food):
-        food = enemy_food.asList()
-
-        num_food = len(food)
-
-        food = food + friends_pos
-
-        mh_graph = np.zeros((len(food), len(food)))
-        for i in range(len(food)):
-            for j in range(i + 1, len(food)):
-                mh_graph[i, j] = self.dist(food[i], food[j])
-
-        X = csr_matrix(mh_graph)
-
-        Tcsr = minimum_spanning_tree(X)
-
-        return num_food, np.sum(Tcsr)
-
-
-
-    '''
-    def getFeatures(self, gameState):
-
-        ## Features between agents
-        enemies = self.getOpponents(gameState)
-        friends = self.getTeam(gameState)
-
-        score = self.getScore(gameState)
-
-        friend_pos = [gameState.getAgentPosition(i) for i in friends]
-        enemy_pos = [gameState.getAgentPosition(i) for i in enemies]
-
-        closest_enemy, mean_closest_enemy, min_mean_dist_enemy, closest_friend, mean_closest_friend, min_mean_dist_friend = self.get_agent_distance_features(enemy_pos, friend_pos)
-
-        # Features of agents in each others territory
-
-        if self.blue:
-            enemies_in_our_territory = [gameState.isBlue(i) for i in enemy_pos]
-        else:
-            enemies_in_our_territory = [gameState.isRed(i) for i in enemy_pos]
-
-        if self.blue:
-            friends_in_enemy_territory = [gameState.isRed(i) for i in friend_pos]
-        else:
-            friends_in_enemy_territory = [gameState.isBlue(i) for i in friend_pos]
-
-        prop_enemies_in_us = np.mean(enemies_in_our_territory)
-        prop_friends_in_them = np.mean(friends_in_enemy_territory)
-
-        num_enemies_in_us = sum(enemies_in_our_territory)
-        num_friends_in_them = sum(friends_in_enemy_territory)
-
-        # Features of agents in their territory
-        if self.blue:
-            friends_in_our_territory = [gameState.isBlue(i) for i in friend_pos]
-        else:
-            friends_in_out_territory = [gameState.isRed(i) for i in friend_pos]
-
-        if self.blue:
-            enemies_in_their_territory = [gameState.isRed(i) for i in friend_pos]
-        else:
-            enemies_in_their_territory = [gameState.isBlue(i) for i in friend_pos]
-
-        # Features between foods and agents
-        enemy_food = CaptureAgent.getFoodYouAreDefending(gameState)
-        friendly_food = CaptureAgent.getFood(gameState)
-
-        # Features between Super-Capsules an Agents
-        enemy_capsules = CaptureAgent.getCapsules(gameState)
-        friendly_capsule = CaptureAgent.getCapsulesYouAreDefending(gameState)
-
-        return score, prop_enemies_in_us, prop_friends_in_them, num_enemies_in_us, num_friends_in_them
-    '''
-
-
-    def is_friend(self, agent_index, gameState):
-        return agent_index in self.getTeam(gameState)
-
-    def is_enemy(self, agent_index, gameState):
-        return agent_index in self.getOpponents(gameState)
-
-    def are_friends(self, index1, index2, gameState):
-        one = index1 in self.getTeam(gameState)
-        two = index2 in self.getTeam(gameState)
-        return one == two
-
-    def are_enemies(self, index1, index2, gameState):
-        return not self.are_friends(index1, index2, gameState)
-
-    def chooseAction(self, gameState):
-        """
-        Picks among actions randomly.
-        """
-        actions = gameState.getLegalActions(self.index)
-        actions = [a for a in actions if a != "Stop"]
-
-        '''
-        You should change this in your own agent.
-        '''
-
-        if self.red:
-            print("red", self.index, actions)
-        else:
-            print("blue", self.index, actions)
-
-        # Hyperparams
-        depth = 1
-        eval_func = self.manual_eval_func
-        epsilon = 0
-
-
-        rand_num = random.randint(0, 100)
-        if rand_num < epsilon:
-            return np.random.choice(actions)
-
-        action = self.alphaBetaHelper(gameState, depth, eval_func, self.index, float("-inf"), float("inf"), self.index)[
-            1]
-        return action
-
-    def manual_eval_func(self, gameState):
-        score = self.getScore(gameState)
-        enemies = self.getOpponents(gameState)
-        friends = self.getTeam(gameState)
-        friend_pos = [gameState.getAgentPosition(i) for i in friends]
-        enemy_pos = [gameState.getAgentPosition(i) for i in enemies]
-        enemy_food = self.getFoodYouAreDefending(gameState)
-        friendly_food = self.getFood(gameState)
-
-
-        num_food, friendly_mst_sum= self.get_friendly_food_features(friend_pos, enemy_food)
-        num_enemy_food, enemy_mst_sum = self.get_enemy_food_features(friend_pos, friendly_food)
-        enemy_dists = self.get_agent_distance_features(gameState, enemy_pos, friend_pos)
-
-
-        result = 2*score + 10*num_food + 2*friendly_mst_sum
-        result = result - 12*num_enemy_food - 2*enemy_mst_sum
-        result += enemy_dists
-
-        print(result)
-
-        return result
-
-
-    def alphaBetaHelper(self, gameState, depth, evalFunc, agent_index, alpha, beta, root_index):
-
-        if gameState.isOver():
-           return evalFunc(gameState), None
-
-        if depth <= 0:
-            return evalFunc(gameState), None
-
-        actions = gameState.getLegalActions(agent_index)
-        # actions = [a for a in actions if a != 'Stop']
-
-        new_depth = depth
-        num_agents = gameState.getNumAgents()
-        new_index = (agent_index + 1) % num_agents
-
-        if new_index == root_index - 1:
-            new_depth = depth - 1
-
-        succesors_scores = []
-
-        for action in actions:
-            succesor = gameState.generateSuccessor(agent_index, action)
-
-            val = self.alphaBetaHelper(succesor, new_depth, evalFunc, new_index, alpha, beta, root_index)[0]
-            if self.is_friend(agent_index, gameState):
-                if val > beta:
-                    return val, action
-                alpha = max(alpha, val)
-            else:
-                if val < alpha:
-                    return val, action
-                beta = min(beta, val)
-
-            succesors_scores.append((val, action))
-
-        succesors_acts = np.array([score[1] for score in succesors_scores])
-        succesors_scores = np.array([score[0] for score in succesors_scores])
-
-        if self.is_friend(agent_index, gameState):
-            optimizing_arg = np.argmax(succesors_scores)
-        else:
-            optimizing_arg = np.argmin(succesors_scores)
-        return succesors_scores[optimizing_arg], succesors_acts[optimizing_arg]
-
-
-
 class OffensiveAgent(CaptureAgent):
     def registerInitialState(self, gameState):
         """
@@ -400,10 +145,12 @@ class OffensiveAgent(CaptureAgent):
         for f in friend_pos:
             for e in enemy_pos:
                 d = self.dist(f, e)
+                if d > 4:
+                    continue
                 if self.is_in_enemy(gameState, e):
-                    enemy_dists.append(-10/(d-0.9))
+                    enemy_dists.append(-1/(d-0.5))
                 else:
-                    enemy_dists.append(10/(d-0.9))
+                    enemy_dists.append(1/(d+1))
 
         if len(enemy_dists) <= 0:
             return 0
@@ -491,14 +238,14 @@ class OffensiveAgent(CaptureAgent):
         # Set this manually
         result = dict()
 
-        result["score"] = 0.1
-        result["num_enemy_food"] = -5000
-        result["enemy_mst_sum"] = -100
+        result["score"] = 10
+        result["num_enemy_food"] = -75000
+        result["enemy_mst_sum"] = -500
         result["min_dist_to_food"] = -10
-        result["enemy_dists"] = 10
-        result["remaining_uncaptured"] = -1000000
-        result["carrying_food"] = 0
-        result["min_dist_to_friend"] = 1
+        result["enemy_dists"] = 50
+        result["remaining_uncaptured"] = -2500000
+        result["carrying_food"] = -1
+        result["min_dist_to_friend"] = 100
         #result["max_dist_to_friend_dot"] = 10
 
 
