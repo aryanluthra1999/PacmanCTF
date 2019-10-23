@@ -400,12 +400,10 @@ class OffensiveAgent(CaptureAgent):
         for f in friend_pos:
             for e in enemy_pos:
                 d = self.dist(f, e)
-                if d > 5:
-                    continue
                 if self.is_in_enemy(gameState, e):
-                    enemy_dists.append(d)
+                    enemy_dists.append(-10/(d-0.9))
                 else:
-                    enemy_dists.append(-3*d)
+                    enemy_dists.append(10/(d-0.9))
 
         if len(enemy_dists) <= 0:
             return 0
@@ -485,6 +483,8 @@ class OffensiveAgent(CaptureAgent):
         for k in weights.keys():
             sum += weights[k] * features[k]
 
+        if action == "Stop":
+            return sum - 10000000
         return sum
 
     def getWeights(self, gameState, action):
@@ -492,12 +492,13 @@ class OffensiveAgent(CaptureAgent):
         result = dict()
 
         result["score"] = 0.1
-        result["num_enemy_food"] = -1000
+        result["num_enemy_food"] = -5000
         result["enemy_mst_sum"] = -100
         result["min_dist_to_food"] = -10
         result["enemy_dists"] = 10
-        result["remaining_uncaptured"] = -100000
+        result["remaining_uncaptured"] = -1000000
         result["carrying_food"] = 0
+        result["min_dist_to_friend"] = 1
         #result["max_dist_to_friend_dot"] = 10
 
 
@@ -532,6 +533,11 @@ class OffensiveAgent(CaptureAgent):
 
         max_dist_to_friend_dot = 0
 
+        min_dist_to_friend = 0
+        if self.is_in_enemy(new_gs, new_gs.getAgentPosition(self.index)) and self.carrying >=1:
+            min_dist_to_friend = min([self.dist(new_gs.getAgentPosition(self.index), new_gs.getAgentPosition(f)) for f in friends if f != self.index])
+            min_dist_to_friend = 1/ min_dist_to_friend
+
 
         if self.carrying >= 1:
             num_friendly_food, enemy_mst_sum, min_dist_to_food = self.get_friendly_food_features(new_gs, enemy_food)
@@ -539,6 +545,7 @@ class OffensiveAgent(CaptureAgent):
 
 
         #result["max_dist_to_friend_dot"] = 1/(max_dist_to_friend_dot+.01)
+        result["min_dist_to_friend"] = min_dist_to_friend
         result["min_dist_to_food"] = min_dist_to_food
         result["score"] = score
         result["num_enemy_food"] = num_enemy_food
