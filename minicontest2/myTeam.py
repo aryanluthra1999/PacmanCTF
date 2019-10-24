@@ -154,7 +154,7 @@ class OffensiveAgent(CaptureAgent):
         f = gameState.getAgentPosition(self.index)
         for e in enemy_pos:
             d = self.dist(f, e)
-            if d > 4 or not self.is_in_enemy(gameState, f):
+            if d >= 4:
                 continue
             if self.is_in_enemy(gameState, e):
                 r = -1/(d-0.9)
@@ -307,7 +307,7 @@ class OffensiveAgent(CaptureAgent):
         gon_get_got = closest_enemy < (2 * min_dist_to_food)
 
 
-        if self.carrying >= 1 and gon_get_got:
+        if self.carrying >= 1:
             num_friendly_food, enemy_mst_sum, min_dist_to_food = self.get_friendly_food_features(new_gs, enemy_food)
             enemy_mst_sum = enemy_mst_sum**0.5
             max_dist_to_friend_dot = min([self.dist(f, new_gs.getAgentPosition(self.index)) for f in enemy_food.asList()])
