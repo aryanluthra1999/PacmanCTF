@@ -389,8 +389,9 @@ class DefensiveAgent(CaptureAgent):
 
     def getWeights(self, gameState, action):
         # Set this manually
-        return {"num_opps_in_territory": -10000000, "num_food_in_territory": 20, "is_in_enemy": -1000000000000000,
-                "min_dist": -5, "min_dist_opp_in_territory": -6900, "dist_between": -100}
+        return {"num_opps_in_territory": -100000, "num_food_in_territory": 20, "is_in_enemy": -10000000,
+                "min_dist": -5, "min_dist_opp_in_territory": -690}
+                # "dist_between": -100}
 
     def getFeatures(self, gameState, action):
         # figure out good features here
@@ -432,7 +433,7 @@ class DefensiveAgent(CaptureAgent):
             min_dist_opp_in_terr = min(opps_in_our_territory_dist)
         return {"num_opps_in_territory": sum_opps, "num_food_in_territory": friendly_food,
                 "is_in_enemy": is_in_opp_ground, "min_dist": min_dist_from_opp,
-                "min_dist_opp_in_territory": min_dist_opp_in_terr, "dist_between": dist_between}
+                "min_dist_opp_in_territory": min_dist_opp_in_terr,"dist_between": dist_between}
 
 
 def argmax(array):
