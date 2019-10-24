@@ -310,6 +310,8 @@ class OffensiveAgent(CaptureAgent):
         min_dist_capsule = 0
         if len(num_capsules):
             min_dist_capsule = min([self.dist(cap, gameState.getAgentPosition(self.index)) for cap in self.getCapsules(new_gs)])
+            if self.carrying:
+                min_dist_capsule = 3 * min_dist_capsule
         print(num_capsules, min_dist_capsule)
 
         #result["max_dist_to_friend_dot"] = 1/(max_dist_to_friend_dot+.01)
