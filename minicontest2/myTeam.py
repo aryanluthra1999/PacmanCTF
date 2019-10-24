@@ -255,6 +255,8 @@ class OffensiveAgent(CaptureAgent):
         result["carrying_food"] = -1
         result["min_dist_to_friend"] = 60
         result["times_visited"] = -3
+        result["num_capsules"] = -100
+        result["min_dist_capsule"] = -10
         #result["max_dist_to_friend_dot"] = 10
 
 
@@ -301,12 +303,18 @@ class OffensiveAgent(CaptureAgent):
             enemy_mst_sum = enemy_mst_sum**0.5
             max_dist_to_friend_dot = min([self.dist(f, new_gs.getAgentPosition(self.index)) for f in enemy_food.asList()])
 
-
         self.update_recent(gameState.getAgentPosition(self.index))
         times_visited = self.num_in_recent(new_gs.getAgentPosition(self.index))
 
+        num_capsules = len(self.getCapsules(new_gs))
+        min_dist_capsule = 0
+        if len(num_capsules):
+            min_dist_capsule = min([self.dist(cap, gameState.getAgentPosition(self.index)) for cap in self.getCapsules(new_gs)])
+        print(num_capsules, min_dist_capsule)
 
         #result["max_dist_to_friend_dot"] = 1/(max_dist_to_friend_dot+.01)
+        result["num_capsules"] = num_capsules
+        result["min_dist_capsule"] = min_dist_capsule
         result["times_visited"] = times_visited**1.4
         result["min_dist_to_friend"] = min_dist_to_friend
         result["min_dist_to_food"] = min_dist_to_food
