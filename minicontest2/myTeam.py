@@ -118,14 +118,18 @@ class OffensiveAgent(CaptureAgent):
         self.remaining_uncaptured_foods = 0
         self.carrying = 0
         self.recent = util.Queue()
+        self.recent2 = util.Queue()
 
     def update_recent(self, pos):
         self.recent.push(pos)
-        if len(self.recent.list) > 125:
+        self.recent2.push(pos)
+        if len(self.recent.list) > 15:
             self.recent.pop()
+        if len(self.recent2.list) > 125:
+            self.recent2.pop()
 
     def num_in_recent(self, pos):
-        return len([p for p in self.recent.list if p == pos])
+        return len([p for p in self.recent.list if p == pos]), len([p for p in self.recent2.list if p == pos])
 
     def is_friend(self, agent_index, gameState):
         return agent_index in self.getTeam(gameState)
@@ -150,7 +154,7 @@ class OffensiveAgent(CaptureAgent):
         f = gameState.getAgentPosition(self.index)
         for e in enemy_pos:
             d = self.dist(f, e)
-            if d > 4:
+            if d > 4 or not self.is_in_enemy(gameState, f):
                 continue
             if self.is_in_enemy(gameState, e):
                 r = -1/(d-0.9)
@@ -250,13 +254,15 @@ class OffensiveAgent(CaptureAgent):
         result["num_enemy_food"] = -150
         result["enemy_mst_sum"] = -100
         result["min_dist_to_food"] = -10
-        result["enemy_dists"] = 80
+        result["enemy_dists"] = 85
         result["remaining_uncaptured"] = -999999999
         result["carrying_food"] = -1
-        result["min_dist_to_friend"] = 60
+        result["min_dist_to_friend"] = 80
         result["times_visited"] = -3
-        result["num_capsules"] = -100
-        result["min_dist_capsule"] = -10
+        result["num_capsules"] = -1000
+        result["min_dist_capsule"] = 50
+        result["times_visited_long"] = -1
+        result["num_enemies"] = -10000
         #result["max_dist_to_friend_dot"] = 10
 
 
@@ -297,14 +303,17 @@ class OffensiveAgent(CaptureAgent):
             min_dist_to_friend = min([self.dist(new_gs.getAgentPosition(self.index), new_gs.getAgentPosition(f)) for f in friends if f != self.index])
             min_dist_to_friend = 1/min_dist_to_friend
 
+        closest_enemy = min(self.dist(new_gs.getAgentPosition(self.index), e) for e in enemy_pos)
+        gon_get_got = closest_enemy < (2 * min_dist_to_food)
 
-        if self.carrying >= 1:
+
+        if self.carrying >= 1 and gon_get_got:
             num_friendly_food, enemy_mst_sum, min_dist_to_food = self.get_friendly_food_features(new_gs, enemy_food)
             enemy_mst_sum = enemy_mst_sum**0.5
             max_dist_to_friend_dot = min([self.dist(f, new_gs.getAgentPosition(self.index)) for f in enemy_food.asList()])
 
         self.update_recent(gameState.getAgentPosition(self.index))
-        times_visited = self.num_in_recent(new_gs.getAgentPosition(self.index))
+        times_visited, times_visited_long = self.num_in_recent(new_gs.getAgentPosition(self.index))
 
         num_capsules = len(self.getCapsules(new_gs))
         min_dist_capsule = 0
@@ -314,10 +323,18 @@ class OffensiveAgent(CaptureAgent):
                 min_dist_capsule = 3 * min_dist_capsule
         #print(num_capsules, min_dist_capsule)
 
+        if not self.red:
+            opps_in_our_territory = [not new_gs.isRed(i) for i in enemy_pos]
+        else:
+            opps_in_our_territory = [new_gs.isRed(i) for i in enemy_pos]
+
+
         #result["max_dist_to_friend_dot"] = 1/(max_dist_to_friend_dot+.01)
+        result["num_enemies"] = len(opps_in_our_territory)
         result["num_capsules"] = num_capsules
-        result["min_dist_capsule"] = min_dist_capsule
-        result["times_visited"] = times_visited**1.41
+        result["min_dist_capsule"] = 1/(min_dist_capsule-0.8)
+        result["times_visited"] = times_visited**1.35
+        result["times_visited_long"] = times_visited_long**1.075
         result["min_dist_to_friend"] = min_dist_to_friend
         result["min_dist_to_food"] = min_dist_to_food
         result["score"] = score
@@ -410,7 +427,7 @@ class DefensiveAgent(CaptureAgent):
             opps_in_our_territory_dist = [dist_tool.getDistance(i, current_pos) for i in enemy_pos if
                                           not new_gamestate.isRed(i)]
         else:
-            opps_in_out_territory = [new_gamestate.isRed(i) for i in enemy_pos]
+            opps_in_our_territory = [new_gamestate.isRed(i) for i in enemy_pos]
             opps_in_our_territory_dist = [dist_tool.getDistance(i, current_pos) for i in enemy_pos if
                                           new_gamestate.isRed(i)]
         dist_between = abs(
