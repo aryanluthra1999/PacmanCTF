@@ -250,7 +250,7 @@ class OffensiveAgent(CaptureAgent):
         result["num_enemy_food"] = -150
         result["enemy_mst_sum"] = -100
         result["min_dist_to_food"] = -10
-        result["enemy_dists"] = 50
+        result["enemy_dists"] = 80
         result["remaining_uncaptured"] = -999999999
         result["carrying_food"] = -1
         result["min_dist_to_friend"] = 60
@@ -312,12 +312,12 @@ class OffensiveAgent(CaptureAgent):
             min_dist_capsule = min([self.dist(cap, gameState.getAgentPosition(self.index)) for cap in self.getCapsules(new_gs)])
             if self.carrying:
                 min_dist_capsule = 3 * min_dist_capsule
-        print(num_capsules, min_dist_capsule)
+        #print(num_capsules, min_dist_capsule)
 
         #result["max_dist_to_friend_dot"] = 1/(max_dist_to_friend_dot+.01)
         result["num_capsules"] = num_capsules
         result["min_dist_capsule"] = min_dist_capsule
-        result["times_visited"] = times_visited**1.4
+        result["times_visited"] = times_visited**1.41
         result["min_dist_to_friend"] = min_dist_to_friend
         result["min_dist_to_food"] = min_dist_to_food
         result["score"] = score
