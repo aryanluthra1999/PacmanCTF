@@ -306,8 +306,6 @@ class OffensiveAgent(CaptureAgent):
             min_dist_to_friend = 1/min_dist_to_friend
 
         closest_enemy = np.min(self.dist(new_gs.getAgentPosition(self.index), e) for e in enemy_pos)
-        gon_get_got = closest_enemy < (2 * min_dist_to_food)
-
 
         if self.carrying >= 1:
             num_friendly_food, enemy_mst_sum, min_dist_to_food = self.get_friendly_food_features(new_gs, enemy_food)
@@ -345,7 +343,7 @@ class OffensiveAgent(CaptureAgent):
         result["enemy_dists"] = enemy_dists
         result["remaining_uncaptured"] = self.remaining_uncaptured_foods
         result["carrying_food"] = self.carrying
-
+        #result["closest_enemy"] = closest_enemy
         return result
 
 
