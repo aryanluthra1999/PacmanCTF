@@ -406,7 +406,7 @@ class DefensiveAgent(CaptureAgent):
 
     def getWeights(self, gameState, action):
         # Set this manually
-        return {"num_opps_in_territory": -100000, "num_food_in_territory": 20, "is_in_enemy": -10000000,
+        return {"num_opps_in_territory": -100000, "num_food_in_territory": 200, "is_in_enemy": -10000000,
                 "min_dist": -5, "min_dist_opp_in_territory": -690}
                 # "dist_between": -100}
 
