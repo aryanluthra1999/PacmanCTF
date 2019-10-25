@@ -413,6 +413,7 @@ class DefensiveAgent(CaptureAgent):
     def getFeatures(self, gameState, action):
         # figure out good features here
         new_gamestate = gameState.generateSuccessor(self.index, action)
+        isScared=new_gamestate.getAgentState(self.index).scaredTimer!=0
         current_pos = new_gamestate.getAgentPosition(self.index)
         friends = self.getTeam(new_gamestate)
         opps = self.getOpponents(new_gamestate)
@@ -445,7 +446,9 @@ class DefensiveAgent(CaptureAgent):
         if min_dist_from_opp == 0:
             min_dist_from_opp = -1000
         min_dist_opp_in_terr = 0
-
+        if(isScared):
+            if(min_dist_from_opp==1):
+                min_dist_from_opp=1000
         if (len(opps_in_our_territory_dist) != 0):
             min_dist_opp_in_terr = min(opps_in_our_territory_dist)
         return {"num_opps_in_territory": sum_opps, "num_food_in_territory": friendly_food,
