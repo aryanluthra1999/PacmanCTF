@@ -311,6 +311,8 @@ class OffensiveAgent(CaptureAgent):
             num_friendly_food, enemy_mst_sum, min_dist_to_food = self.get_friendly_food_features(new_gs, enemy_food)
             enemy_mst_sum = enemy_mst_sum**0.5
             max_dist_to_friend_dot = np.min([self.dist(f, new_gs.getAgentPosition(self.index)) for f in enemy_food.asList()])
+            #if closest_enemy == 1:
+            #    num_enemy_food = num_enemy_food * 0.0000001
 
         self.update_recent(gameState.getAgentPosition(self.index))
         times_visited, times_visited_long = self.num_in_recent(new_gs.getAgentPosition(self.index))
